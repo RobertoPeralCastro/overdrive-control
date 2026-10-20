@@ -18,6 +18,11 @@
   box-sizing: border-box;
 }
 
+/* Classes like .btn set display, which would otherwise beat the hidden attribute. */
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   margin: 0;

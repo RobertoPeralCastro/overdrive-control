@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0d12" />
+    <meta name="description" content="Manual de Overdrive Control: conecta y conduce coches Anki Overdrive desde el móvil, con armas, carreras, IA, mandos y multijugador." />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <title>Manual de Overdrive Control</title>
+    <style>
+      :root {
+        --bg: #0b0d12;
+        --panel: #141821;
+        --panel-2: #1b2130;
+        --line: #262d3d;
+        --text: #eef1f7;
+        --muted: #8a93a6;
+        --accent: #0a84ff;
+        --warn: #ffd60a;
+        --danger: #ff3b30;
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 16px/1.6 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+      }
+      header.hero {
+        padding: 40px 16px 24px;
+        text-align: center;
+        background: radial-gradient(circle at 50% 0%, rgb(10 132 255 / 0.25), transparent 70%);
+      }
+      .hero h1 {
+        margin: 0 0 8px;
+        font-size: clamp(1.7rem, 6vw, 2.4rem);
+        line-height: 1.15;
+      }
+      .hero p {
+        margin: 0 auto 20px;
+        max-width: 36ch;
+        color: var(--muted);
+      }
+      .cta {
+        display: inline-block;
+        padding: 12px 22px;
+        border-radius: 999px;
+        background: var(--accent);
+        color: #fff;
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .cta.ghost {
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        margin-left: 8px;
+      }
+      nav.toc {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 0 16px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      nav.toc a {
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        color: var(--text);
+        text-decoration: none;
+        font-size: 0.85rem;
+      }
+      main {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 8px 16px 64px;
+      }
+      section {
+        padding-top: 32px;
+      }
+      h2 {
+        font-size: 1.4rem;
+        margin: 0 0 12px;
+        scroll-margin-top: 16px;
+      }
+      h3 {
+        font-size: 1.05rem;
+        margin: 20px 0 8px;
+      }
+      p,
+      li {
+        color: #d5dae4;
+      }
+      a {
+        color: #64d2ff;
+      }
+      code,
+      kbd {
+        font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+        font-size: 0.88em;
+        padding: 1px 6px;
+        border-radius: 6px;
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        color: var(--text);
+      }
+      .shot {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: flex-start;
+        margin: 16px 0;
+      }
+      .shot figure {
+        margin: 0;
+        flex: 0 1 240px;
+      }
+      .shot img {
+        width: 100%;
+        height: auto;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        box-shadow: 0 10px 30px rgb(0 0 0 / 0.45);
+      }
+      .shot figcaption {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-top: 6px;
+        text-align: center;
+      }
+      .shot .text {
+        flex: 1 1 260px;
+        min-width: 0;
+      }
+      .note {
+        border-radius: 12px;
+        padding: 12px 14px;
+        margin: 12px 0;
+        background: color-mix(in srgb, var(--warn) 10%, transparent);
+        border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+      }
+      .note.danger {
+        background: color-mix(in srgb, var(--danger) 10%, transparent);
+        border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+      }
+      .table-wrap {
+        overflow-x: auto;
+        margin: 12px 0;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 0.9rem;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        color: var(--muted);
+        font-weight: 600;
+      }
+      ol.steps > li {
+        margin-bottom: 8px;
+      }
+      footer {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 24px 16px 48px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <h1>🏁 Overdrive Control</h1>
+      <p>Conduce tus coches Anki Overdrive desde el móvil: armas, carreras con semáforo, IA, mandos y multijugador. Sin instalar nada.</p>
+      <a class="cta" href="./">Abrir la app</a><a class="cta ghost" href="./?demo">Probar sin coche</a>
+    </header>
+
+    <nav class="toc" aria-label="Contenido">
+      <a href="#necesitas">Qué necesitas</a>
+      <a href="#bluetooth">Permisos de Bluetooth</a>
+      <a href="#conducir">Conducir</a>
+      <a href="#pista">Escanear la pista</a>
+      <a href="#armas">Armas</a>
+      <a href="#carrera">Carrera e IA</a>
+      <a href="#mandos">Mandos</a>
+      <a href="#multijugador">Varios móviles</a>
+      <a href="#teclado">Teclado</a>
+      <a href="#problemas">Problemas</a>
+    </nav>
+
+    <main>
+      <section id="necesitas">
+        <h2>Qué necesitas</h2>
+        <ul>
+          <li><strong>Coches Anki Overdrive</strong> cargados y la <strong>pista oficial</strong> montada. Los coches se guían leyendo códigos impresos en la pista: en el suelo sin pista no funcionan.</li>
+          <li>Un navegador con <strong>Web Bluetooth</strong>:
+            <ul>
+              <li><strong>Android</strong>: Chrome o Edge (recomendado).</li>
+              <li><strong>Windows, macOS, ChromeOS</strong>: Chrome o Edge.</li>
+              <li><strong>iPhone / iPad</strong>: Safari no lo soporta; usa el navegador gratuito <strong>Bluefy</strong>.</li>
+              <li><strong>Brave</strong>: lo trae desactivado; mira abajo cómo activarlo.</li>
+            </ul>
+          </li>
+          <li>Opcional: uno o varios <strong>mandos</strong> (Xbox, PlayStation, 8BitDo…) por USB o Bluetooth.</li>
+        </ul>
+        <p>Consejo: en el móvil, abre la app y usa <em>Añadir a pantalla de inicio</em> en el menú del navegador para tenerla como una app más, a pantalla completa.</p>
+      </section>
+
+      <section id="bluetooth">
+        <h2>Permisos de Bluetooth</h2>
+        <div class="shot">
+          <figure><img src="manual/01-inicio.png" alt="Pantalla de inicio con el botón Conectar coche" width="391" height="849" loading="lazy" /><figcaption>Pantalla de inicio</figcaption></figure>
+          <div class="text">
+            <ol class="steps">
+              <li>Activa el <strong>Bluetooth</strong> del móvil u ordenador.</li>
+              <li>Enciende el coche y ponlo sobre la pista. Si no se despierta, déjalo un momento en el cargador.</li>
+              <li>Pulsa <strong>Conectar coche</strong>. El navegador abre una lista con los coches cercanos (aparecen como <em>Drive</em> o con su nombre).</li>
+              <li>Elige el coche y pulsa <strong>Vincular</strong> / <strong>Conectar</strong>. Repite con <strong>+</strong> (arriba) para añadir más coches.</li>
+            </ol>
+            <p>La app solo pide acceso al coche que eliges en esa lista; no ve el resto de tus dispositivos.</p>
+          </div>
+        </div>
+
+        <h3>Android</h3>
+        <ul>
+          <li>La primera vez Chrome pide permiso de <strong>Dispositivos cercanos</strong>: pulsa <em>Permitir</em>. Si lo rechazaste, ve a <em>Ajustes → Aplicaciones → Chrome → Permisos → Dispositivos cercanos</em>.</li>
+          <li>En Android 11 o anterior, Bluetooth necesita además la <strong>ubicación</strong> activada (es un requisito de Android para buscar dispositivos, la app no usa tu ubicación).</li>
+          <li>La web debe abrirse por <strong>https</strong> (el enlace de la app ya lo es).</li>
+        </ul>
+
+        <h3>iPhone / iPad</h3>
+        <ul>
+          <li>Instala <strong>Bluefy – Web BLE Browser</strong> desde la App Store y abre el enlace de la app con él.</li>
+          <li>Cuando iOS pregunte si Bluefy puede usar Bluetooth, pulsa <em>Permitir</em> (o actívalo en <em>Ajustes → Bluefy → Bluetooth</em>).</li>
+        </ul>
+
+        <h3>Windows y macOS</h3>
+        <ul>
+          <li>Usa Chrome o Edge con el Bluetooth del equipo activado.</li>
+          <li>En macOS, permite el Bluetooth al navegador en <em>Ajustes del Sistema → Privacidad y seguridad → Bluetooth</em>.</li>
+        </ul>
+
+        <h3>Brave</h3>
+        <div class="note">Brave desactiva Web Bluetooth por defecto. Escribe <code>brave://flags</code> en la barra de direcciones, busca <strong>Web Bluetooth</strong>, ponlo en <em>Enabled</em> y reinicia el navegador. Si no encuentras la opción, usa Chrome o Edge.</div>
+
+        <h3>Revisar o quitar permisos</h3>
+        <p>En Chrome: candado junto a la dirección → <em>Configuración del sitio</em>. Ahí puedes ver los dispositivos Bluetooth que has permitido y retirarlos.</p>
+      </section>
+
+      <section id="conducir">
+        <h2>Conducir</h2>
+        <div class="shot">
+          <figure><img src="manual/02-cockpit.png" alt="Pantalla de conducción con velocímetro, carriles, acelerador, armas y freno" width="391" height="849" loading="lazy" /><figcaption>Cockpit de un coche</figcaption></figure>
+          <div class="text">
+            <ul>
+              <li><strong>Acelerador</strong> (barra vertical): arrástralo; la velocidad se queda donde lo dejes, como un control de crucero. <strong>▲ ▼</strong> la cambian por pasos.</li>
+              <li><strong>Carril ‹ ›</strong>: cambia de carril. <strong>Media vuelta</strong> le da la vuelta al coche. Ambos necesitan que el coche esté en marcha (si está parado, la app lo arranca suave).</li>
+              <li><strong>FRENO</strong> para el coche; <strong>STOP</strong> (arriba) frena todos.</li>
+              <li>El velocímetro muestra la velocidad real que mide el coche y la objetivo. Debajo: batería, blindaje, energía y tu objetivo.</li>
+              <li>Los colores de abajo cambian la luz del coche. Cada coche tiene su pestaña arriba.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="pista">
+        <h2>Escanear la pista</h2>
+        <p>Para saber quién va delante, contar vueltas y dibujar el mapa, la app necesita conocer la pista. Pulsa <strong>Escanear pista</strong> (en el cockpit o en 🏁 Carrera): el coche da una vuelta despacio y frena en la línea de salida. Verás el mensaje <em>Pista escaneada: 13 piezas…</em>.</p>
+        <p>Si no la escaneas, la app la aprende sola mientras conduces (en pistas sin pieza de salida tarda dos vueltas). Si cambias la pista, pulsa <strong>Volver a escanear</strong>.</p>
+      </section>
+
+      <section id="armas">
+        <h2>Armas</h2>
+        <p>Como en el juego original, las armas son virtuales: la app calcula el impacto y el coche alcanzado <strong>parpadea en rojo y frena</strong>. Con el blindaje a 0 queda <strong>fuera de combate</strong> 3 segundos. La energía se recarga sola. Cada arma tiene su sonido.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Arma</th><th>Energía</th><th>Alcance</th><th>Efecto</th></tr></thead>
+            <tbody>
+              <tr><td>Láser</td><td>8</td><td>1 pieza por delante</td><td>−8 blindaje, frena un poco</td></tr>
+              <tr><td>Misil</td><td>35</td><td>3 piezas por delante</td><td>−30 blindaje, frena fuerte</td></tr>
+              <tr><td>Pulso</td><td>50</td><td>1 pieza, delante y detrás, a todos</td><td>−10 blindaje, casi los para</td></tr>
+              <tr><td>Escudo</td><td>30</td><td>—</td><td>Bloquea todo durante 3 s</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="carrera">
+        <h2>Carrera e IA</h2>
+        <div class="shot">
+          <figure><img src="manual/03-semaforo.png" alt="Semáforo de salida con cuatro luces rojas encendidas" width="391" height="849" loading="lazy" /><figcaption>Semáforo de salida</figcaption></figure>
+          <figure><img src="manual/04-carrera.png" alt="Mapa de la pista con los coches y la clasificación en directo" width="391" height="849" loading="lazy" /><figcaption>Mapa y clasificación en directo</figcaption></figure>
+          <figure><img src="manual/05-ganador.png" alt="Fin de carrera con el ganador y el podio" width="391" height="849" loading="lazy" /><figcaption>Ganador y podio</figcaption></figure>
+        </div>
+        <ol class="steps">
+          <li>Abre la pestaña <strong>🏁 Carrera</strong>. Verás el mapa de la pista con los coches moviéndose en directo.</li>
+          <li>Elige el número de <strong>vueltas</strong>, si hay <strong>armas</strong> y el <strong>sonido</strong>.</li>
+          <li>Elige el <strong>piloto</strong> de cada coche: tú en pantalla, un mando, otro móvil o la IA.</li>
+          <li>Pulsa <strong>Empezar carrera</strong>: 5 luces rojas con pitidos y, al apagarse, ¡salida! Antes los coches no se mueven aunque aceleres.</li>
+          <li>La app cuenta vueltas, muestra posiciones y mejor vuelta, avisa de la última vuelta y anuncia al ganador.</li>
+        </ol>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nivel de IA</th><th>Qué hace</th></tr></thead>
+            <tbody>
+              <tr><td>IA fácil</td><td>Va tranquila, casi no dispara y nunca empuja.</td></tr>
+              <tr><td>IA normal</td><td>Ritmo de carrera, dispara a menudo y a veces te embiste por detrás en las curvas.</td></tr>
+              <tr><td>IA difícil</td><td>Rápida y agresiva: te embiste en las curvas y se pone a tu lado para sacarte de la pista.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note danger">Los empujones de la IA son reales: los coches chocan de verdad y pueden salirse. Si la pista está sobre una mesa, vigila los bordes.</div>
+      </section>
+
+      <section id="mandos">
+        <h2>Mandos USB y Bluetooth</h2>
+        <div class="shot">
+          <figure><img src="manual/06-mando.png" alt="Cockpit en modo mando con el mapa en lugar de los controles táctiles" width="391" height="849" loading="lazy" /><figcaption>Con mando: telemetría y mapa</figcaption></figure>
+          <div class="text">
+            <h3>Conectar el mando</h3>
+            <ul>
+              <li><strong>Bluetooth</strong>: empareja primero el mando con el móvil u ordenador desde los <em>Ajustes de Bluetooth</em> del sistema. Pon el mando en modo emparejamiento (Xbox: botón de sincronización; PlayStation: <em>Create/Share + PS</em>; 8BitDo: según el modelo).</li>
+              <li><strong>USB</strong>: enchúfalo. En Android hace falta un adaptador USB-C/OTG.</li>
+              <li>Con la app abierta, <strong>pulsa cualquier botón</strong> del mando: el navegador solo lo muestra a la web después de eso. Aparecerá <em>Mando 1 conectado</em>.</li>
+            </ul>
+            <p>Mientras un mando conduce el coche que ves, la pantalla quita los controles táctiles y muestra el mapa. <strong>Mostrar controles</strong> los recupera.</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Botón</th><th>Acción</th></tr></thead>
+            <tbody>
+              <tr><td>RT (gatillo derecho)</td><td>Acelerar (cuanto más aprietas, más rápido)</td></tr>
+              <tr><td>LT o B</td><td>Frenar</td></tr>
+              <tr><td>LB / RB, cruceta ◀ ▶, stick izquierdo</td><td>Carril izquierdo / derecho</td></tr>
+              <tr><td>Cruceta ▲ ▼</td><td>Más / menos velocidad</td></tr>
+              <tr><td>Y</td><td>Media vuelta</td></tr>
+              <tr><td>A / X</td><td>Láser / Misil</td></tr>
+              <tr><td>L3 / R3 (pulsar sticks)</td><td>Pulso / Escudo</td></tr>
+              <tr><td>Start</td><td>Empezar carrera</td></tr>
+              <tr><td>Select / Back</td><td>Frenar todos</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>Un móvil y varios mandos</h3>
+        <p>Conecta todos los coches en un solo móvil y todos los mandos. En <strong>🏁 Carrera</strong> elige <em>Mando 1</em>, <em>Mando 2</em>… como piloto de cada coche. Cada mando conduce solo el suyo. Un mando sin coche asignado conduce el coche que tengas abierto en pantalla.</p>
+      </section>
+
+      <section id="multijugador">
+        <h2>Jugar con varios móviles</h2>
+        <div class="shot">
+          <figure><img src="manual/07-invitar.png" alt="Ventana para invitar a otro móvil con un código QR" width="391" height="849" loading="lazy" /><figcaption>Invitar: QR y código</figcaption></figure>
+          <figure><img src="manual/08-invitado.png" alt="Pantalla del móvil invitado con su posición y su cockpit" width="391" height="849" loading="lazy" /><figcaption>El móvil invitado</figcaption></figure>
+          <figure><img src="manual/09-carrera-multijugador.png" alt="Carrera en el anfitrión con un coche que se conduce desde otro móvil" width="391" height="849" loading="lazy" /><figcaption>El anfitrión ve a todos</figcaption></figure>
+        </div>
+        <ol class="steps">
+          <li>En el móvil <strong>anfitrión</strong> pulsa <strong>📱</strong> (arriba). Aparecen un <strong>código QR</strong> y un código de 5 letras.</li>
+          <li>En el otro móvil, <strong>escanea el QR con la cámara</strong>, o abre la app, pulsa 📱 y escribe el código en <em>¿Te han invitado a ti?</em>.</li>
+          <li>Ese móvil conecta <strong>su propio coche</strong> por Bluetooth y lo conduce con la pantalla o con su mando.</li>
+          <li>El anfitrión maneja la carrera desde <strong>🏁 Carrera</strong>. Cada móvil ve su cockpit, el semáforo, su vuelta y posición, la clasificación y el mapa, con sonidos y vibración.</li>
+        </ol>
+        <p>Los dos móviles necesitan internet (wifi o datos) para encontrarse; después se hablan directamente. Cada coche solo puede estar conectado a un móvil a la vez.</p>
+      </section>
+
+      <section id="teclado">
+        <h2>Teclado (ordenador)</h2>
+        <div class="table-wrap">
+          <table>
+            <tbody>
+              <tr><td><kbd>W</kbd> <kbd>S</kbd> / <kbd>↑</kbd> <kbd>↓</kbd></td><td>Más / menos velocidad</td></tr>
+              <tr><td><kbd>A</kbd> <kbd>D</kbd> / <kbd>←</kbd> <kbd>→</kbd></td><td>Carril</td></tr>
+              <tr><td><kbd>Espacio</kbd></td><td>Frenar</td></tr>
+              <tr><td><kbd>U</kbd></td><td>Media vuelta</td></tr>
+              <tr><td><kbd>Q</kbd> <kbd>E</kbd> <kbd>R</kbd> <kbd>F</kbd></td><td>Láser, Misil, Pulso, Escudo</td></tr>
+              <tr><td><kbd>1</kbd>–<kbd>9</kbd> / <kbd>0</kbd></td><td>Cambiar de coche / pantalla de carrera</td></tr>
+              <tr><td><kbd>Esc</kbd></td><td>Frenar todos</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="problemas">
+        <h2>Problemas frecuentes</h2>
+        <h3>El coche no aparece en la lista</h3>
+        <ul>
+          <li>Ponlo un momento en el cargador para despertarlo y vuelve a intentarlo.</li>
+          <li>Comprueba que no está conectado a otro móvil o a otra app (un coche solo acepta una conexión).</li>
+          <li>Revisa los permisos de Bluetooth de arriba (Dispositivos cercanos en Android, Brave…).</li>
+        </ul>
+        <h3>«Este navegador no tiene Bluetooth»</h3>
+        <p>Estás en un navegador sin Web Bluetooth (Safari, Firefox, Brave sin activar). Usa Chrome o Edge; en iPhone, Bluefy.</p>
+        <h3>El coche da vueltas buscando la pista</h3>
+        <p>Los coches solo saben ir sobre la pista oficial: leen los códigos impresos en ella. En el suelo o sobre otra superficie no se pueden conducir.</p>
+        <h3>No cuenta las vueltas o no hay objetivo</h3>
+        <p>Escanea la pista (o vuelve a escanearla si la has cambiado).</p>
+        <h3>El mando no hace nada</h3>
+        <p>Pulsa un botón del mando con la app abierta. En 🏁 Carrera, comprueba qué coche tiene asignado ese mando.</p>
+        <h3>El otro móvil no se une</h3>
+        <p>Comprueba que los dos tienen internet y que el código es el que muestra el anfitrión ahora (cada vez que se abre la app cambia). Algunas wifis de empresa bloquean las conexiones directas entre dispositivos; prueba con datos móviles.</p>
+        <h3>Sigo viendo la versión antigua</h3>
+        <p>Cierra la app del todo y vuelve a abrirla, o recarga la página.</p>
+      </section>
+    </main>
+
+    <footer>
+      <p>Overdrive Control es un proyecto personal sin ánimo de lucro, no afiliado a Anki ni a Digital Dream Labs.</p>
+      <p>Protocolo Bluetooth basado en <a href="https://github.com/dschwen/OpenOverdrive">OpenOverdrive</a> de dschwen y en el <a href="https://github.com/anki/drive-sdk">Anki Drive SDK</a> oficial. Multijugador con <a href="https://peerjs.com">PeerJS</a>. Código: <a href="https://github.com/RobertoPeralCastro/overdrive-control">github.com/RobertoPeralCastro/overdrive-control</a>.</p>
+    </footer>
+  </body>
+</html>

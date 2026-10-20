@@ -435,7 +435,10 @@ function renderInvite(): void {
             h('p', { class: 'room-code' }, ['Código: ', h('strong', {}, room.code.toUpperCase())]),
             h('button', { class: 'btn btn-ghost btn-sm', onclick: () => shareLink(url!) }, 'Compartir enlace'),
             h('ul', { class: 'guest-list' }, guests.length ? guests : [h('li', { class: 'muted' }, 'Aún no se ha unido nadie')]),
-            h('p', { class: 'race-hint' }, 'Cada jugador conecta su propio coche desde su móvil. La carrera se maneja desde aquí, en 🏁 Carrera.'),
+            h('p', { class: 'race-hint' }, [
+              'Cada jugador conecta su propio coche desde su móvil. La carrera se maneja desde aquí, en 🏁 Carrera. ',
+              h('a', { href: 'manual.html#multijugador', target: '_blank', rel: 'noopener' }, 'Ayuda'),
+            ]),
           ]),
     h('div', { class: 'sheet-join' }, [h('p', {}, '¿Te han invitado a ti? Escribe su código:'), h('div', { class: 'join-row' }, [codeInput, h('button', { class: 'btn btn-primary', onclick: join }, 'Unirse')])]),
   );
@@ -466,7 +469,12 @@ async function shareLink(url: string): Promise<void> {
 
 /** A pad drives the car assigned to it; a pad without a car of its own drives the car on screen. */
 function padCar(index: number): Car | undefined {
-  return race.carForPad(index) ?? (selected && race.driverOf(selected).kind === 'screen' ? selected : undefined);
+  const own = race.carForPad(index);
+  if (own) return own;
+  if (!selected || race.isAi(selected)) return undefined;
+  // Not the car another pad or a guest phone drives. AI drivers only matter during a race.
+  const kind = race.driverOf(selected).kind;
+  return kind === 'pad' || kind === 'guest' ? undefined : selected;
 }
 
 /** Name of the pad driving `car`, if one is. */
@@ -572,6 +580,7 @@ function emptyState(): HTMLElement {
       supported ? h('button', { class: 'btn btn-primary btn-lg', onclick: addCar }, [icon('bluetooth'), demo ? 'Añadir coche simulado' : 'Conectar coche']) : null,
       h('button', { class: 'btn btn-ghost', onclick: openInvite }, '📱 Jugar con otro móvil'),
       demo ? null : h('a', { class: 'btn btn-ghost', href: '?demo' }, 'Probar demo sin coche'),
+      h('a', { class: 'btn btn-ghost', href: 'manual.html', target: '_blank', rel: 'noopener' }, '📖 Cómo se usa'),
     ]),
   ]);
 }
