@@ -34,6 +34,8 @@ export interface RaceSummary {
   weapons: boolean;
   standings: { name: string; color: string; laps: number; place?: number; best?: number; me: boolean }[];
   winner?: string;
+  /** Awards once the race is over (fastest, longest in the lead…). */
+  awards?: { icon: string; title: string; name: string; value: string }[];
 }
 
 export interface Snapshot {

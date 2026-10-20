@@ -5,6 +5,7 @@ import { Car } from '../src/car';
 import { Field } from '../src/field';
 import { LightEffect, Msg, MsgId, parseMessage } from '../src/protocol';
 import { Race } from '../src/race';
+import { RaceRecorder } from '../src/stats';
 import { TrackLearner, describeTrack, turnFromWheels } from '../src/track';
 import { layoutTrack } from '../src/trackmap';
 import type { Transport } from '../src/transport';
@@ -259,7 +260,7 @@ describe('Race', () => {
     const { race, a, b } = await grid();
     const lights: number[] = [];
     race.addEventListener('light', (e) => lights.push((e as CustomEvent<number>).detail));
-    race.start([a.car, b.car]);
+    race.start([a.car, b.car], { grid: false });
     expect(race.phase).toBe('countdown');
     vi.advanceTimersByTime(4500);
     expect(lights).toEqual([1, 2, 3, 4, 5]);
@@ -273,7 +274,7 @@ describe('Race', () => {
     const { race, field, a, b } = await grid();
     const finished: string[] = [];
     race.addEventListener('finish', (e) => finished.push((e as CustomEvent).detail.car.id));
-    race.start([a.car, b.car]);
+    race.start([a.car, b.car], { grid: false });
     vi.advanceTimersByTime(6000);
     lap(field, b.car);
     expect(race.entries.get(b.car)!.laps).toBe(1);
@@ -286,6 +287,63 @@ describe('Race', () => {
     expect(finished).toEqual([a.car.id, b.car.id]);
     expect(race.phase).toBe('finished');
     expect(race.standings().map((e) => e.place)).toEqual([1, 2]);
+  });
+
+  it('lines the cars up at the start line before the lights', async () => {
+    const { race, field, a, b } = await grid();
+    race.start([a.car, b.car]);
+    expect(race.phase).toBe('grid');
+    expect(a.car.state.targetSpeed).toBe(350);
+    expect(race.isLocked(a.car)).toBe(true);
+    // A crosses the line (last piece -> first piece) and waits there.
+    const n = field.lap!.length;
+    field.observe(a.car, field.lap![n - 1]);
+    field.observe(a.car, field.lap![0]);
+    expect(race.parked.has(a.car)).toBe(true);
+    expect(a.car.state.targetSpeed).toBe(0);
+    expect(race.phase).toBe('grid');
+    // B too: everyone is lined up, so the countdown starts.
+    for (let i = 4; i < n; i++) field.observe(b.car, field.lap![i]);
+    field.observe(b.car, field.lap![0]);
+    expect(race.phase).toBe('countdown');
+    vi.advanceTimersByTime(6600);
+    expect(race.phase).toBe('running');
+  });
+
+  it('starts the countdown anyway if a car never reaches the line', async () => {
+    const { race, a, b } = await grid();
+    race.start([a.car, b.car]);
+    vi.advanceTimersByTime(45_000);
+    expect(race.phase).toBe('countdown');
+    expect(b.car.state.targetSpeed).toBe(0);
+  });
+
+  it('records top speed, time in the lead and hands out awards', async () => {
+    const env = await grid();
+    const { race, field, a, b } = env;
+    const rec = new RaceRecorder(race, env.battle);
+    race.start([a.car, b.car], { grid: false });
+    vi.advanceTimersByTime(6000);
+    // B is ahead (2 pieces) and faster for a while.
+    field.observe(b.car, field.runner(b.car)!.piece!, 1300);
+    field.observe(a.car, field.runner(a.car)!.piece!, 700);
+    env.clock(1000);
+    rec.sample();
+    expect(rec.live.get(b.car)).toMatchObject({ topSpeed: 1300 });
+    expect(rec.live.get(b.car)!.leadMs).toBeGreaterThan(0);
+    expect(rec.live.get(a.car)!.leadMs).toBe(0);
+    lap(field, b.car);
+    env.clock(4000);
+    lap(field, b.car);
+    env.clock(2000);
+    lap(field, a.car);
+    env.clock(5000);
+    lap(field, a.car);
+    expect(race.phase).toBe('finished');
+    const titles = rec.awards.map((x) => `${x.title}:${x.car.id}`);
+    expect(titles).toContain(`Ganador:${b.car.id}`);
+    expect(titles).toContain(`Más rápido:${b.car.id}`);
+    expect(titles.some((t) => t.startsWith('Vuelta rápida'))).toBe(true);
   });
 
   it('does not start without a scanned track', async () => {
@@ -309,7 +367,7 @@ describe('Race', () => {
   it('AI cars drive on their own once the lights go out', async () => {
     const { race, a, b } = await grid();
     race.setDriver(b.car, { kind: 'ai', level: 'hard' });
-    race.start([a.car, b.car]);
+    race.start([a.car, b.car], { grid: false });
     expect(race.isAi(b.car)).toBe(true);
     vi.advanceTimersByTime(6000);
     expect(b.car.state.targetSpeed).toBeGreaterThan(900);

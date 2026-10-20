@@ -4,9 +4,11 @@ import { Gamepads } from './gamepad';
 import { MapView } from './mapview';
 import { joinRoom, normalizeCode } from './net';
 import { RaceStrip } from './racestrip';
+import { awardsList } from './screens';
 import { GuestSession, guestModel, type GuestEvent, type RaceSummary } from './remote';
 import { errText, keepAwake, showToast, toastElement } from './shell';
 import { SimTransport } from './sim';
+import { TiltSteer } from './tilt';
 import { sound, type SoundName } from './sound';
 import { bluetoothAvailable, pickCar, sleep, type Transport } from './transport';
 
@@ -77,6 +79,8 @@ export function startGuest(rawCode: string, demo: boolean): void {
 
   async function connectCar(): Promise<void> {
     sound.unlock();
+    // This tap is our chance to get the motion sensor for tilt steering during the race.
+    TiltSteer.prime();
     let t: Transport;
     // Groundshock, Nuke or Guardian: not the models the host's demo starts with.
     if (demo) t = new SimTransport([8, 11, 12][Math.floor(Math.random() * 3)]);
@@ -136,6 +140,9 @@ export function startGuest(rawCode: string, demo: boolean): void {
 
   function onSnapshot(): void {
     if (stage !== 'driving') return;
+    // While racing, only the controls (and tilt steering on a phone).
+    const phase = session?.snap?.race.phase;
+    cockpit?.setRaceMode(phase === 'countdown' || phase === 'running');
     cockpit?.update();
     renderStrip();
     if (standingsOpen) renderSheet();
@@ -192,6 +199,7 @@ export function startGuest(rawCode: string, demo: boolean): void {
     map.update();
     sheet.replaceChildren(
       h('div', { class: 'sheet-head' }, [h('h2', {}, raceTitle(r)), h('button', { class: 'btn btn-ghost btn-sm', onclick: () => sheet.close(), 'aria-label': 'Cerrar' }, '✕')]),
+      ...(r.awards?.length ? [awardsList(r.awards)] : []),
       h('div', { class: 'sheet-map' }, map.el),
       h(
         'ol',

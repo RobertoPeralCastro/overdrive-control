@@ -26,6 +26,7 @@ export class RaceStrip {
     const mine = r.standings[me];
     let text: string;
     if (r.phase === 'setup') text = this.idleText!;
+    else if (r.phase === 'grid') text = 'Colocándose en la línea de salida…';
     else if (r.phase === 'countdown') text = 'Preparados…';
     else if (mine?.place) text = mine.place === 1 ? '🏆 ¡Has ganado!' : `Llegas ${mine.place}.º`;
     else if (r.phase === 'running') text = `Vuelta ${Math.min((mine?.laps ?? 0) + 1, r.totalLaps)}/${r.totalLaps} · ${me + 1}.º de ${r.standings.length}`;

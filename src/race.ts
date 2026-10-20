@@ -11,7 +11,7 @@ import type { MoveDetail } from './field';
 
 /** Who drives a car: this screen, a gamepad on this phone, the AI, or another phone (a guest). */
 export type Driver = { kind: 'screen' } | { kind: 'pad'; index: number } | { kind: 'ai'; level: AiLevel } | { kind: 'guest' };
-export type Phase = 'setup' | 'countdown' | 'running' | 'finished';
+export type Phase = 'setup' | 'grid' | 'countdown' | 'running' | 'finished';
 
 export interface Entry {
   car: Car;
@@ -27,6 +27,12 @@ export const LIGHTS = 5;
 const LIGHT_MS = 1000;
 const HOLD_MIN_MS = 400;
 const HOLD_MAX_MS = 1600;
+/** Getting to the start line: gentle speed, spread across lanes, and a time limit. */
+const GRID_SPEED = 350;
+const GRID_LANE_DELAY_MS = 400;
+const GRID_TIMEOUT_MS = 45_000;
+/** Widest lane offset used to spread the cars on the grid, mm from the centre. */
+const GRID_SPREAD_MM = 50;
 
 export class Race extends EventTarget {
   phase: Phase = 'setup';
@@ -39,6 +45,8 @@ export class Race extends EventTarget {
   private ais = new Map<Car, AiDriver>();
   private timers: ReturnType<typeof setTimeout>[] = [];
   private finishedCount = 0;
+  /** Cars already waiting at the start line. */
+  readonly parked = new Set<Car>();
 
   constructor(
     private battle: Battle,
@@ -72,26 +80,71 @@ export class Race extends EventTarget {
     return this.ais.get(car)?.move;
   }
 
+  get live(): boolean {
+    return this.phase === 'grid' || this.phase === 'countdown' || this.phase === 'running';
+  }
+
   isAi(car: Car): boolean {
-    return this.driverOf(car).kind === 'ai' && (this.phase === 'countdown' || this.phase === 'running');
+    return this.driverOf(car).kind === 'ai' && this.live;
+  }
+
+  /** Nobody drives while the cars line up at the start. */
+  isLocked(car: Car): boolean {
+    return this.phase === 'grid' && this.entries.has(car);
   }
 
   /** Why the race cannot start right now, if it can't. */
   blocker(cars: Car[]): string | undefined {
-    if (this.phase === 'countdown' || this.phase === 'running') return 'La carrera ya está en marcha';
+    if (this.live) return 'La carrera ya está en marcha';
     if (!this.battle.field.lap) return 'Primero escanea la pista';
     if (!cars.some((c) => c.ready)) return 'No hay coches conectados';
     return undefined;
   }
 
-  start(cars: Car[]): void {
+  /**
+   * Starts a race. With `grid` (the default), every car first drives to the start line in its
+   * own lane and stops there; the countdown begins once they are all lined up.
+   */
+  start(cars: Car[], { grid = true } = {}): void {
     if (this.blocker(cars)) return;
     this.clearTimers();
-    const field = this.battle.field;
     const racers = cars.filter((c) => c.ready);
     this.entries = new Map(racers.map((car) => [car, { car, laps: 0, lapStartedAt: 0, lapTimes: [] }]));
     this.finishedCount = 0;
+    this.parked.clear();
     this.battle.reset();
+    this.lights = 0;
+    if (grid) this.lineUp(racers);
+    else this.countdown();
+  }
+
+  private lineUp(racers: Car[]): void {
+    const field = this.battle.field;
+    this.phase = 'grid';
+    const n = racers.length;
+    racers.forEach((car, i) => {
+      car.setSpeed(GRID_SPEED);
+      // Spread them evenly across the lanes so they stop side by side instead of nose to tail.
+      const target = n === 1 ? 0 : -GRID_SPREAD_MM + (2 * GRID_SPREAD_MM * i) / (n - 1);
+      this.later(GRID_LANE_DELAY_MS, () => {
+        const offset = field.runner(car)?.offset ?? 0;
+        if (Math.abs(target - offset) > 3) car.shiftLane(target - offset);
+      });
+    });
+    // A car that can't find the line (off the track, no codes) must not hold everyone up.
+    this.later(GRID_TIMEOUT_MS, () => this.phase === 'grid' && this.gridDone());
+    this.changed();
+  }
+
+  private gridDone(): void {
+    this.clearTimers();
+    this.entries.forEach((e) => this.parked.has(e.car) || (e.car.ready && e.car.brake()));
+    this.countdown();
+  }
+
+  private countdown(): void {
+    const field = this.battle.field;
+    const racers = [...this.entries.keys()];
     this.phase = 'countdown';
     this.lights = 0;
 
@@ -157,6 +210,15 @@ export class Race extends EventTarget {
   private onMove({ car, from, to }: MoveDetail): void {
     const e = this.entries.get(car);
     const n = this.battle.field.lap?.length ?? 0;
+    if (this.phase === 'grid' && e && !this.parked.has(car) && to === 0 && from !== undefined && from !== 0) {
+      // Just crossed the start line: wait here.
+      car.brake();
+      this.parked.add(car);
+      this.dispatchEvent(new CustomEvent('parked', { detail: car }));
+      if (this.parked.size >= this.entries.size) this.gridDone();
+      else this.changed();
+      return;
+    }
     if (this.phase !== 'running' || !e || e.place || from === undefined || !n) return;
     // Forward over the line: from one of the last pieces to one of the first.
     const crossed = from > to && to + n - from <= 2;

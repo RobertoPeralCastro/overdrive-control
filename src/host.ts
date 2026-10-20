@@ -2,17 +2,19 @@ import qrcode from 'qrcode-generator';
 import { Battle, WEAPONS, type FireDetail, type WeaponId } from './battle';
 import { Car } from './car';
 import { Cockpit, REPEAT_KEYS, keyAction, targetText, vibrate, type CockpitModel, type CombatView } from './cockpit';
-import { h, icon } from './dom';
+import { h } from './dom';
 import { Field } from './field';
 import { Gamepads } from './gamepad';
-import { fieldCars, fieldSource } from './mapview';
+import { MapView, fieldCars, fieldSource } from './mapview';
 import { joinUrl, normalizeCode, openRoom, type Channel, type Room } from './net';
-import { Race, type Entry } from './race';
+import { LIGHTS, Race, type Entry } from './race';
 import { RaceStrip } from './racestrip';
-import { RaceView } from './raceview';
+import { CarsScreen, TrackScreen, awardsList, standingsList, type ScreenDeps } from './screens';
 import { GuestLink, type Action, type GuestEvent, type RaceSummary, type RemoteTransport, type Snapshot } from './remote';
-import { errText, keepAwake, showToast, toastElement } from './shell';
+import { errText, goLandscape, keepAwake, leaveLandscape, showToast, toastElement } from './shell';
 import { SimTransport } from './sim';
+import { RaceRecorder } from './stats';
+import { TiltSteer } from './tilt';
 import { sound, type SoundName } from './sound';
 import { describeTrack } from './track';
 import { bluetoothAvailable, pickCar, type Transport } from './transport';
@@ -30,30 +32,40 @@ const cars: Car[] = [];
 const field = new Field();
 const battle = new Battle(field);
 const race = new Race(battle);
+/** Top speed, time in the lead… per race, and every car's record saved on this phone. */
+const recorder = new RaceRecorder(race, battle);
+recorder.addEventListener('awards', () => {
+  if (recorder.awards.length) announce(recorder.awards.map((a) => `${a.icon} ${a.title}: ${a.car.state.name}`).join(' · '));
+  render();
+});
 const links: GuestLink[] = [];
 let room: Room | undefined;
-let selected: Car | undefined;
-/** The race screen is showing instead of a car's cockpit. */
-let raceScreen = false;
+
+/** 1 Coches → 2 Pista → 3 Carrera; "drive" is free driving one car outside a race. */
+type Screen = 'cars' | 'track' | 'race' | 'drive';
+let screen: Screen = 'cars';
+/** The car being driven freely (screen "drive"). */
+let driving: Car | undefined;
 
 const app = document.getElementById('app')!;
-const garage = h('nav', { class: 'garage', 'aria-label': 'Coches conectados' });
+const steps = h('nav', { class: 'steps', 'aria-label': 'Pasos' });
 const stage = h('main', { class: 'stage stage-stack' });
 const invite = h('dialog', { class: 'sheet', 'aria-label': 'Jugar con otro móvil' });
+const standingsSheet = h('dialog', { class: 'sheet', 'aria-label': 'Clasificación' });
 
 app.append(
   h('header', { class: 'topbar' }, [
     h('div', { class: 'brand' }, [h('span', { class: 'brand-mark' }), 'Overdrive', h('em', {}, ' control')]),
     h('div', { class: 'top-actions' }, [
       h('button', { class: 'btn btn-ghost', onclick: openInvite, title: 'Jugar con otro móvil', 'aria-label': 'Jugar con otro móvil' }, '📱'),
-      h('button', { class: 'btn btn-ghost', onclick: addCar, title: 'Buscar y conectar un coche', 'aria-label': 'Conectar un coche' }, [icon('plus'), h('span', { class: 'btn-label' }, 'Coche')]),
       h('button', { class: 'btn btn-stop', onclick: stopAll, title: 'Frenar todos los coches (Esc)' }, 'STOP'),
     ]),
   ]),
-  garage,
+  steps,
   stage,
   toastElement(),
   invite,
+  standingsSheet,
 );
 
 // ---- Cars -----------------------------------------------------------------
@@ -78,12 +90,11 @@ async function addCar(): Promise<void> {
 
   const existing = cars.find((c) => c.id === transport.id);
   if (existing) {
-    select(existing);
     if (existing.state.status === 'disconnected') void existing.connect().catch(() => {});
     return;
   }
   const car = register(transport);
-  select(car);
+  render();
   try {
     await car.connect();
     vibrate(30);
@@ -106,8 +117,10 @@ function removeCar(car: Car): void {
   void car.disconnect();
   cars.splice(cars.indexOf(car), 1);
   battle.remove(car);
-  if (selected === car) selected = cars[0];
-  if (!cars.length) raceScreen = false;
+  if (driving === car) {
+    driving = undefined;
+    if (screen === 'drive') screen = 'cars';
+  }
   render();
   void keepAwake(cars.some((c) => c.state.status !== 'disconnected'));
 }
@@ -118,26 +131,40 @@ function stopAll(): void {
   vibrate([40, 40, 40]);
 }
 
-function select(car: Car | undefined): void {
+function go(to: Screen): void {
+  if (to === 'race' && race.phase === 'setup') to = 'track';
+  if (to !== 'race') leaveLandscape();
+  screen = to;
+  render();
+}
+
+/** Free driving outside a race (from the cars screen). */
+function drive(car: Car): void {
   // The AI drives its cars during a race: there is nothing to steer.
-  if (car && race.isAi(car)) return showToast(`${car.state.name} lo conduce la IA durante la carrera`);
-  selected = car;
-  raceScreen = false;
-  render();
+  if (race.isAi(car)) return showToast(`${car.state.name} lo conduce la IA durante la carrera`);
+  driving = car;
+  go('drive');
 }
 
-/** The racing car this phone drives (on screen or with one of its pads), if any. */
+/** Whether one of `list` will be driven on this screen in the next race. */
+function myRacerFor(list: Car[]): Car | undefined {
+  return list.find((c) => c.ready && race.driverOf(c).kind === 'screen');
+}
+
+/** The racing car this phone drives (on screen first, else with one of its pads), if any. */
 function myRacer(): Car | undefined {
-  const mine = (kinds: string[]) => cars.find((c) => race.entries.has(c) && kinds.includes(race.driverOf(c).kind));
-  return mine(['screen']) ?? mine(['pad']);
+  const mine = (kind: string) => cars.find((c) => race.entries.has(c) && race.driverOf(c).kind === kind && c.ready);
+  return mine('screen') ?? mine('pad');
 }
 
-function showRace(): void {
-  raceScreen = true;
-  render();
+/** The car whose controls are on screen right now. */
+function shownCar(): Car | undefined {
+  if (screen === 'drive') return driving;
+  if (screen === 'race') return myRacer();
+  return undefined;
 }
 
-const racing = () => race.phase === 'countdown' || race.phase === 'running';
+const racing = () => race.live;
 const isGuestCar = (car: Car) => race.driverOf(car).kind === 'guest';
 
 // ---- Sound and messages, here and on every guest phone ---------------------------
@@ -160,7 +187,7 @@ function announce(msg: string): void {
 function buzz(car: Car, pattern: number[]): void {
   const link = links.find((l) => l.car === car);
   if (link) link.push({ k: 'buzz', p: pattern });
-  else if (car === selected) vibrate(pattern);
+  else if (car === shownCar()) vibrate(pattern);
 }
 
 // ---- Battle ---------------------------------------------------------------------
@@ -186,13 +213,15 @@ function scanTrack(car: Car): void {
 
 function startRace(): void {
   sound.unlock();
+  // This tap is our chance to get the motion sensor for tilt steering once the race starts,
+  // and to go full screen in landscape: the phone is held like a steering wheel.
+  TiltSteer.prime();
+  if (myRacerFor(cars)) void goLandscape();
   const why = race.blocker(cars);
   if (why) return showToast(why);
   race.start(cars);
-  // Straight to the controls of the car driven from this phone; the race screen otherwise.
-  const mine = myRacer();
-  if (mine) select(mine);
-  else showRace();
+  announce('Los coches van a la línea de salida…');
+  go('race');
 }
 
 const WEAPON_SOUNDS: Record<WeaponId, SoundName> = { blaster: 'laser', missile: 'missile', pulse: 'pulse', shield: 'shield' };
@@ -201,8 +230,9 @@ field.addEventListener('track', () => announce(`Pista escaneada: ${describeTrack
 field.addEventListener('scanfail', () => announce('No se pudo escanear la pista. Comprueba que el coche está sobre ella.'));
 battle.addEventListener('change', () => {
   cockpit?.updateBattle();
-  raceView?.update();
   updateStrip();
+  if (screen === 'race' && !cockpit) renderRace();
+  if (standingsSheet.open) renderStandings();
 });
 battle.addEventListener('fire', (e) => {
   const { shooter, weapon, hits } = (e as CustomEvent<FireDetail>).detail;
@@ -222,11 +252,10 @@ battle.addEventListener('fire', (e) => {
 });
 battle.start();
 
-race.addEventListener('change', () => {
-  raceView?.update();
-  cockpit?.updateBattle();
-  updateStrip();
-  renderGarage();
+race.addEventListener('change', () => render());
+race.addEventListener('parked', (e) => {
+  sfx('lap');
+  announce(`${(e as CustomEvent<Car>).detail.state.name} está en la línea de salida`);
 });
 race.addEventListener('light', () => sfx('light'));
 race.addEventListener('go', () => {
@@ -320,6 +349,7 @@ function raceSummary(me: Car): RaceSummary {
       me: e.car === me,
     })),
     winner: race.winner()?.car.state.name,
+    awards: race.phase === 'finished' ? recorder.awards.map((a) => ({ icon: a.icon, title: a.title, name: a.car.state.name, value: a.value })) : undefined,
   };
 }
 
@@ -366,7 +396,7 @@ function onGuest(ch: Channel): void {
 }
 
 function guestAct(car: Car, a: Action): void {
-  if (race.isAi(car)) return;
+  if (race.isAi(car) || race.isLocked(car)) return;
   switch (a.a) {
     case 'speed':
       car.setSpeed(Number(a.v) || 0);
@@ -485,38 +515,58 @@ async function shareLink(url: string): Promise<void> {
 /** A pad drives the car assigned to it; a pad without a car of its own drives the car on screen. */
 function padCar(index: number): Car | undefined {
   const own = race.carForPad(index);
-  if (own) return own;
-  if (!selected || race.isAi(selected)) return undefined;
-  // Not the car another pad or a guest phone drives. AI drivers only matter during a race.
-  const kind = race.driverOf(selected).kind;
-  return kind === 'pad' || kind === 'guest' ? undefined : selected;
+  if (own) return race.isLocked(own) ? undefined : own;
+  const car = shownCar();
+  if (!car || race.isAi(car) || race.isLocked(car)) return undefined;
+  // Not the car another pad or a guest phone drives.
+  const kind = race.driverOf(car).kind;
+  return kind === 'pad' || kind === 'guest' ? undefined : car;
 }
 
 /** Name of the pad driving `car`, if one is. */
 function padDriving(car: Car): string | undefined {
-  const pad = pads.list().find((p) => padCar(p.index) === car);
+  const pad = pads.list().find((p) => padCar(p.index) === car || race.carForPad(p.index) === car);
   return pad && `Mando ${pad.index + 1} (${pad.name})`;
 }
 
 const pads = new Gamepads({
   carFor: padCar,
   fire: (car, id) => fire(car as Car, id),
-  start: () => (race.phase === 'setup' || race.phase === 'finished' ? startRace() : undefined),
+  start: () => (screen === 'track' && !race.blocker(cars) ? startRace() : undefined),
   stopAll,
   notify: (msg) => {
     showToast(msg);
-    raceView?.update();
-    cockpit?.update();
+    render();
   },
 });
 
-// ---- Rendering --------------------------------------------------------------
+// ---- Screens ----------------------------------------------------------------------------
+
+const deps: ScreenDeps = {
+  race,
+  battle,
+  pads,
+  demo,
+  cars: () => cars,
+  isGuestCar,
+  addCar: () => void addCar(),
+  removeCar,
+  drive,
+  invite: () => void openInvite(),
+  scan: scanTrack,
+  start: startRace,
+  next: () => go('track'),
+  back: () => go('cars'),
+};
+const carsScreen = new CarsScreen(deps);
+const trackScreen = new TrackScreen(deps);
 
 let cockpit: Cockpit | undefined;
 let cockpitCar: Car | undefined;
-let raceView: RaceView | undefined;
 /** Lights, lap and position above the cockpit while racing. */
-const strip = new RaceStrip(showRace);
+const strip = new RaceStrip(() => openStandings());
+/** The race screen without own controls: map and standings (or the grid / results). */
+let raceMap: MapView | undefined;
 
 function updateStrip(): void {
   strip.update(cockpitCar && race.entries.has(cockpitCar) ? raceSummary(cockpitCar) : undefined);
@@ -528,87 +578,121 @@ function dropCockpit(): void {
   cockpitCar = undefined;
 }
 
+function dropRaceMap(): void {
+  raceMap?.destroy();
+  raceMap = undefined;
+}
+
+function show(...els: HTMLElement[]): void {
+  if (els.some((el, i) => stage.children[i] !== el) || stage.children.length !== els.length) stage.replaceChildren(...els);
+}
+
 function render(): void {
-  renderGarage();
-  if (raceScreen && cars.length) {
-    dropCockpit();
-    raceView ??= new RaceView({ race, battle, pads, cars: () => cars, scan: scanTrack, start: startRace, toast: showToast });
-    if (!raceView.el.isConnected) stage.replaceChildren(raceView.el);
-    raceView.update();
-    return;
+  if (screen === 'race' && race.phase === 'setup') screen = 'track';
+  if (screen === 'drive' && !driving) screen = 'cars';
+  renderSteps();
+  if (screen !== 'drive' && screen !== 'race') dropCockpit();
+  if (screen !== 'race') dropRaceMap();
+
+  if (screen === 'cars') {
+    carsScreen.update();
+    show(carsScreen.el);
+  } else if (screen === 'track') {
+    trackScreen.update();
+    show(trackScreen.el);
+  } else if (screen === 'drive') {
+    showCockpit(driving!, false);
+  } else {
+    renderRace();
   }
-  if (!selected) {
+}
+
+function showCockpit(car: Car, raceMode: boolean): void {
+  dropRaceMap();
+  if (cockpitCar !== car || !cockpit) {
     dropCockpit();
-    stage.replaceChildren(emptyState());
-    return;
+    cockpit = new Cockpit(hostModel(car));
+    cockpitCar = car;
   }
-  if (cockpitCar !== selected || !cockpit?.el.isConnected) {
-    dropCockpit();
-    cockpit = new Cockpit(hostModel(selected));
-    cockpitCar = selected;
-    stage.replaceChildren(strip.el, cockpit.el);
-  }
+  cockpit.setRaceMode(raceMode);
+  if (raceMode) show(strip.el, cockpit.el);
+  else show(h('div', { class: 'drive-bar' }, [h('button', { class: 'btn btn-ghost btn-sm', onclick: () => go('cars') }, '← Coches')]), cockpit.el);
   cockpit.update();
   updateStrip();
 }
 
-function onCarChange(car: Car): void {
-  renderGarage();
-  if (cockpitCar === car) cockpit?.update();
-  if (isGuestCar(car)) renderInvite();
-}
-
-function renderGarage(): void {
-  garage.hidden = cars.length === 0;
-  garage.replaceChildren(
-    h('button', { class: `chip chip-race ${raceScreen ? 'is-active' : ''}`, onclick: showRace, title: 'Pista, carrera e IA (tecla 0)' }, '🏁 Carrera'),
-    ...cars.map((car, i) => {
-      const s = car.state;
-      const ai = race.isAi(car);
-      const chip = h(
-        'button',
-        {
-          class: `chip ${car === selected && !raceScreen ? 'is-active' : ''} is-${s.status}`,
-          style: `--car:${s.color}`,
-          onclick: () => select(car),
-          title: ai ? `${s.name} lo conduce la IA` : `${s.name}${isGuestCar(car) ? ' (desde otro móvil)' : ''} (tecla ${i + 1})`,
-        },
-        [
-          h('span', { class: 'chip-dot' }),
-          h('span', { class: 'chip-name' }, `${ai ? '🤖 ' : isGuestCar(car) ? '📱 ' : ''}${s.name}`),
-          s.battery !== undefined ? h('span', { class: 'chip-batt' }, `${s.battery}%`) : null,
-        ],
-      );
-      chip.disabled = ai;
-      return chip;
-    }),
+/** Screen 3: lining up, then only the controls of this phone's car (or the circuit with a pad). */
+function renderRace(): void {
+  const mine = myRacer();
+  if ((race.phase === 'countdown' || race.phase === 'running') && mine && !race.entries.get(mine)?.place) {
+    showCockpit(mine, true);
+    return;
+  }
+  dropCockpit();
+  raceMap ??= new MapView(() => fieldSource(field, { cars: () => cars, me: mine }));
+  raceMap.update();
+  const head = h('header', { class: 'screen-head' });
+  const parts: (HTMLElement | null)[] = [];
+  if (race.phase === 'grid') {
+    head.append(h('h1', {}, '3 · A la salida'), h('p', {}, `Los coches van a la línea de salida (${race.parked.size}/${race.entries.size} colocados). Después empieza la cuenta atrás.`));
+    parts.push(h('footer', { class: 'screen-foot' }, h('button', { class: 'btn btn-stop', onclick: stopAll }, 'Parar')));
+  } else if (race.phase === 'finished') {
+    const winner = race.winner();
+    head.append(h('h1', {}, winner ? `🏆 Gana ${winner.car.state.name}` : 'Carrera terminada'));
+    if (recorder.awards.length) head.append(awardsList(recorder.awards.map((a) => ({ icon: a.icon, title: a.title, name: a.car.state.name, value: a.value }))));
+    parts.push(
+      h('footer', { class: 'screen-foot' }, [
+        h('button', { class: 'btn btn-ghost', onclick: () => go('cars') }, 'Cambiar coches'),
+        h('button', { class: 'btn btn-primary btn-lg', onclick: () => go('track') }, 'Otra carrera'),
+      ]),
+    );
+  } else {
+    head.append(h('h1', {}, race.phase === 'countdown' ? 'Preparados…' : `Carrera · ${race.totalLaps} ${race.totalLaps === 1 ? 'vuelta' : 'vueltas'}`));
+    parts.push(h('footer', { class: 'screen-foot' }, h('button', { class: 'btn btn-stop', onclick: stopAll }, 'Parar carrera')));
+  }
+  const lights =
+    race.phase === 'countdown'
+      ? h('div', { class: 'lights is-on', 'aria-hidden': 'true' }, Array.from({ length: LIGHTS }, (_, i) => h('span', { class: `bulb ${i < race.lights ? 'is-lit' : ''}` })))
+      : null;
+  stage.replaceChildren(
+    h('section', { class: 'screen' }, [head, h('div', { class: 'track-stage' }, [raceMap.el, lights]), standingsList(race, battle, cars), ...parts].filter((x): x is HTMLElement => !!x)),
   );
 }
 
-function emptyState(): HTMLElement {
-  const supported = bluetoothAvailable() || demo;
-  return h('section', { class: 'empty' }, [
-    h('div', { class: 'empty-track' }, [h('span', { class: 'empty-car' })]),
-    h('h1', {}, demo ? 'Modo demo' : 'Conecta tu coche'),
-    supported
-      ? h('p', {}, demo
-          ? 'Coches simulados para probar los controles sin Bluetooth.'
-          : 'Pon el coche en la pista o en el cargador, enciéndelo y pulsa Conectar. Puedes añadir varios coches.')
-      : h('p', { class: 'warn' }, [
-          'Este navegador no soporta Web Bluetooth. Abre la app en ',
-          h('strong', {}, 'Chrome o Edge'),
-          ' (Android, Windows, macOS, Linux o ChromeOS). En iPhone usa el navegador ',
-          h('strong', {}, 'Bluefy'),
-          '.',
-        ]),
-    h('div', { class: 'empty-actions' }, [
-      supported ? h('button', { class: 'btn btn-primary btn-lg', onclick: addCar }, [icon('bluetooth'), demo ? 'Añadir coche simulado' : 'Conectar coche']) : null,
-      h('button', { class: 'btn btn-ghost', onclick: openInvite }, '📱 Jugar con otro móvil'),
-      demo ? null : h('a', { class: 'btn btn-ghost', href: '?demo' }, 'Probar demo sin coche'),
-      h('a', { class: 'btn btn-ghost', href: 'manual.html', target: '_blank', rel: 'noopener' }, '📖 Cómo se usa'),
-    ]),
-  ]);
+function renderSteps(): void {
+  const step = (n: number, label: string, to: Screen, enabled: boolean) => {
+    const b = h('button', { class: `step ${screen === to || (to === 'cars' && screen === 'drive') ? 'is-active' : ''}`, onclick: () => go(to) }, [h('span', { class: 'step-n' }, String(n)), label]);
+    b.disabled = !enabled;
+    return b;
+  };
+  steps.replaceChildren(
+    step(1, 'Coches', 'cars', true),
+    step(2, 'Pista', 'track', cars.some((c) => c.ready)),
+    step(3, 'Carrera', 'race', race.phase !== 'setup'),
+  );
 }
+
+function openStandings(): void {
+  if (!standingsSheet.open) standingsSheet.showModal();
+  renderStandings();
+}
+
+function renderStandings(): void {
+  standingsSheet.replaceChildren(
+    h('div', { class: 'sheet-head' }, [h('h2', {}, 'Clasificación'), h('button', { class: 'btn btn-ghost btn-sm', onclick: () => standingsSheet.close(), 'aria-label': 'Cerrar' }, '✕')]),
+    standingsList(race, battle, cars),
+  );
+}
+
+function onCarChange(car: Car): void {
+  if (cockpitCar === car) cockpit?.update();
+  if (isGuestCar(car)) renderInvite();
+  if (screen === 'cars') carsScreen.update();
+  else if (screen === 'track') trackScreen.update();
+  renderSteps();
+}
+
+field.addEventListener('change', () => screen === 'track' && trackScreen.update());
 
 // ---- Keyboard --------------------------------------------------------------------
 
@@ -616,11 +700,8 @@ window.addEventListener('keydown', (e) => {
   if (e.repeat && !REPEAT_KEYS.includes(e.code)) return;
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || invite.open) return;
   if (e.code === 'Escape') return stopAll();
-  if (e.key === '0' && cars.length) return showRace();
-  const n = Number(e.key);
-  if (n >= 1 && n <= cars.length) return select(cars[n - 1]);
-  const car = selected;
-  if (!car?.ready || race.isAi(car) || isGuestCar(car)) return;
+  const car = shownCar();
+  if (!car?.ready || race.isAi(car) || race.isLocked(car) || isGuestCar(car)) return;
   const action = keyAction(e.code, car, (id) => fire(car, id));
   if (action) {
     e.preventDefault();

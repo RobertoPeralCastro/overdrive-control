@@ -2,6 +2,10 @@ import { MAX_ARMOR, MAX_ENERGY, WEAPONS, type WeaponId } from './battle';
 import { MAX_SPEED, type CarState } from './car';
 import { h, icon } from './dom';
 import { MapView, type MapSource } from './mapview';
+import { goLandscape } from './shell';
+import { TiltSteer } from './tilt';
+
+const TILT_PREF = 'overdrive.tilt.on';
 
 /**
  * Driving screen for one car. It does not know where the car lives: on the host the model
@@ -77,6 +81,13 @@ export class Cockpit {
   /** The player asked for the touch controls even though a pad is driving. */
   private keepTouch = false;
   private dragging = false;
+  /** Racing: only the controls, and steering by tilting the phone when it can. */
+  private race = false;
+  private tilt?: TiltSteer;
+  private tiltBar: HTMLElement;
+  private tiltDot: HTMLElement;
+  private tiltBtn: HTMLButtonElement;
+  private rotateHint: HTMLElement;
 
   constructor(readonly model: CockpitModel) {
     const car = model.car;
@@ -115,6 +126,35 @@ export class Cockpit {
       },
     });
 
+    this.tiltDot = h('span', { class: 'tilt-dot' });
+    this.tiltBtn = h('button', { class: 'btn btn-ghost btn-sm', onclick: () => void this.toggleTilt() });
+    this.tiltBar = h('div', { class: 'tilt-bar' }, [
+      h('span', { class: 'tilt-label' }, '📱 Inclina para cambiar de carril'),
+      h('div', { class: 'tilt-track', 'aria-hidden': 'true' }, [h('span', { class: 'tilt-mark is-left' }), h('span', { class: 'tilt-mark is-right' }), this.tiltDot]),
+      h('div', { class: 'tilt-actions' }, [
+        h('button', { class: 'btn btn-ghost btn-sm', onclick: () => this.tilt?.recenter() }, 'Centrar'),
+        h('button', {
+          class: 'btn btn-ghost btn-sm',
+          title: 'Si al inclinar a la derecha el coche se va a la izquierda',
+          onclick: () => {
+            TiltSteer.inverted = !TiltSteer.inverted;
+            this.tilt?.recenter();
+            model.toast(TiltSteer.inverted ? 'Giro invertido' : 'Giro normal');
+          },
+        }, 'Invertir'),
+        this.tiltBtn,
+      ]),
+    ]);
+    // Racing on a phone: hold it sideways like a steering wheel.
+    this.rotateHint = h('div', { class: 'rotate-hint' }, [
+      h('div', { class: 'rotate-phone', 'aria-hidden': 'true' }),
+      h('p', {}, 'Gira el móvil y sujétalo en horizontal, como un volante: inclínalo para cambiar de carril.'),
+      h('div', { class: 'tilt-actions' }, [
+        h('button', { class: 'btn btn-primary', onclick: () => void goLandscape() }, 'Poner en horizontal'),
+        h('button', { class: 'btn btn-ghost', onclick: () => this.el.classList.add('is-portrait-ok') }, 'Seguir en vertical'),
+      ]),
+    ]);
+
     const hold = (fn: () => void, buzz = 15) => ({
       onpointerdown: (e: PointerEvent) => {
         e.preventDefault();
@@ -145,6 +185,7 @@ export class Cockpit {
         }),
       ),
       h('div', { class: 'steer' }, [
+        this.tiltBar,
         h('button', { class: 'btn-pad lane', 'aria-label': 'Carril izquierdo (A)', ...hold(() => car.laneLeft()) }, [icon('left'), h('span', {}, 'Carril')]),
         h('button', { class: 'btn-pad lane', 'aria-label': 'Carril derecho (D)', ...hold(() => car.laneRight()) }, [icon('right'), h('span', {}, 'Carril')]),
         h('button', { class: 'btn-pad uturn', 'aria-label': 'Media vuelta (U)', ...hold(() => car.uTurn()) }, [icon('uturn'), h('span', {}, 'Media vuelta')]),
@@ -163,6 +204,7 @@ export class Cockpit {
         h('div', { class: 'track-info' }, [this.trackText, this.scanButton, this.touchToggle]),
         h('button', { class: 'btn btn-ghost btn-sm', onclick: () => model.remove() }, model.removeLabel),
       ]),
+      this.rotateHint,
       this.overlay,
     ]);
   }
@@ -210,6 +252,51 @@ export class Cockpit {
 
   destroy(): void {
     this.map.destroy();
+    this.tilt?.disable();
+  }
+
+  /**
+   * Race mode: only what's needed to drive (throttle, brake, weapons, armor/energy) and, on a
+   * phone, steering by tilting it instead of the lane buttons.
+   */
+  setRaceMode(on: boolean): void {
+    if (on === this.race) return;
+    this.race = on;
+    this.el.classList.toggle('is-race', on);
+    // On a phone the lanes are changed by tilting it: no arrow buttons while racing.
+    this.el.classList.toggle('is-touch', on && TiltSteer.available());
+    if (on && TiltSteer.available() && tiltWanted()) void this.toggleTilt(true);
+    if (!on) this.tilt?.disable();
+    this.updateTilt();
+  }
+
+  private async toggleTilt(force?: boolean): Promise<void> {
+    const car = this.model.car;
+    if (!this.tilt) {
+      this.tilt = new TiltSteer(
+        () => car.ready && car.laneLeft(),
+        () => car.ready && car.laneRight(),
+      );
+      this.tilt.addEventListener('change', () => this.updateTilt());
+    }
+    const turnOn = force ?? !this.tilt.enabled;
+    if (turnOn) {
+      const ok = await this.tilt.enable();
+      if (!ok && force === undefined) this.model.toast('No se puede usar el giroscopio en este navegador');
+    } else this.tilt.disable();
+    if (force === undefined) setTiltWanted(this.tilt.enabled);
+    this.updateTilt();
+  }
+
+  private updateTilt(): void {
+    const available = this.race && TiltSteer.available();
+    const on = available && !!this.tilt?.enabled;
+    this.tiltBar.hidden = !available;
+    this.el.classList.toggle('is-tilt', on);
+    this.tiltBtn.textContent = on ? 'Botones' : 'Activar';
+    const t = this.tilt?.tilt ?? 0;
+    this.tiltDot.style.left = `${50 + (Math.max(-30, Math.min(30, t)) / 30) * 50}%`;
+    this.tiltDot.classList.toggle('is-hot', Math.abs(t) >= 18);
   }
 
   /** Armor, energy, cooldowns, target and track. Runs ~10 times a second. */
@@ -279,6 +366,22 @@ export class Cockpit {
       e.preventDefault();
       e.stopPropagation();
     });
+  }
+}
+
+function tiltWanted(): boolean {
+  try {
+    return localStorage.getItem(TILT_PREF) !== '0';
+  } catch {
+    return true;
+  }
+}
+
+function setTiltWanted(on: boolean): void {
+  try {
+    localStorage.setItem(TILT_PREF, on ? '1' : '0');
+  } catch {
+    /* storage blocked */
   }
 }
 

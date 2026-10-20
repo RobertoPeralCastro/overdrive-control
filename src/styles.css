@@ -505,6 +505,530 @@ button {
   color: var(--muted);
 }
 
+/* ---- Steps and set-up screens ---- */
+
+.steps {
+  display: flex;
+  gap: 6px;
+  padding: 0 16px 10px;
+  overflow-x: auto;
+}
+.step {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.step.is-active {
+  color: var(--text);
+  border-color: var(--car);
+  background: color-mix(in srgb, var(--car) 18%, var(--panel));
+}
+.step:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.step-n {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--panel-2);
+  font-size: 0.8rem;
+}
+.screen {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 8px;
+}
+.screen-head h1 {
+  margin: 4px 0 4px;
+  font-size: 1.35rem;
+}
+.screen-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.screen-head .warn {
+  margin-top: 8px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.screen-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.screen-foot {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 0 calc(4px + env(safe-area-inset-bottom));
+  background: linear-gradient(transparent, var(--bg) 30%);
+}
+.screen-foot .btn-lg {
+  flex: 1;
+  justify-content: center;
+}
+.stage-stack {
+  overflow-y: auto;
+}
+.empty-card {
+  padding: 18px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  color: var(--muted);
+  text-align: center;
+}
+.empty-card p {
+  margin: 0;
+}
+
+.car-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.car-card {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  gap: 12px;
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--car);
+  border-radius: var(--radius);
+}
+.car-card.is-disconnected {
+  opacity: 0.6;
+}
+.avatar {
+  width: 84px;
+  height: 84px;
+  padding: 0;
+  border: 2px solid var(--car);
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--panel-2);
+  cursor: pointer;
+}
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.car-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.car-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.car-card-title strong {
+  font-size: 1.05rem;
+}
+.car-card-meta {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.car-card .driver {
+  width: 100%;
+}
+.card-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+.card-swatches .swatch {
+  width: 24px;
+  height: 24px;
+}
+.card-swatches .swatch:disabled {
+  opacity: 0.4;
+}
+.car-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.car-card-actions .btn {
+  padding: 0 10px;
+  min-height: 34px;
+}
+
+.car-record {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.awards {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+.sheet .awards {
+  margin: 12px 16px 0;
+}
+.awards li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: 'icon title' 'icon name' 'icon value';
+  column-gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+.award-icon {
+  grid-area: icon;
+  font-size: 1.6rem;
+  align-self: center;
+}
+.award-title {
+  grid-area: title;
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.awards strong {
+  grid-area: name;
+}
+.award-value {
+  grid-area: value;
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.track-stage {
+  position: relative;
+  height: min(46vh, 340px);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.track-summary {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.scan-row,
+.race-settings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.scan-row .driver {
+  flex: 1;
+  min-width: 120px;
+}
+.drive-bar {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.mini-avatar {
+  grid-area: dot;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 2px solid var(--car);
+}
+.standings li.is-winner {
+  border-color: #ffd60a;
+  box-shadow: 0 0 14px rgb(255 214 10 / 0.25);
+}
+.standings .race-armor {
+  grid-column: 2 / -1;
+}
+
+/* ---- Race mode: only the controls ---- */
+
+.cockpit.is-race .car-footer,
+.cockpit.is-race .telemetry {
+  display: none;
+}
+.cockpit.is-race {
+  grid-template-rows: auto auto auto auto;
+  grid-template-areas:
+    'dash dash'
+    'steer pedals'
+    'arms arms'
+    'brake brake';
+}
+.cockpit.is-race .dash {
+  flex-direction: row;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+}
+.cockpit.is-race .gauge {
+  flex: 0 0 110px;
+  min-height: 0;
+  height: 96px;
+}
+.cockpit.is-race .speed-num {
+  font-size: 1.8rem;
+}
+.cockpit.is-race .speed-target {
+  display: none;
+}
+.cockpit.is-race .combat {
+  flex: 1;
+  min-width: 180px;
+}
+/* Bigger touch targets: these are the whole game now */
+.cockpit.is-race .throttle {
+  min-height: 200px;
+}
+.cockpit.is-race .lane {
+  min-height: 120px;
+}
+.cockpit.is-race .brake {
+  min-height: 84px;
+}
+.cockpit.is-race .weapon {
+  min-height: 64px;
+}
+.cockpit.is-tilt .lane {
+  display: none;
+}
+/* With a gamepad the controls are on the pad: show the circuit with the cars instead */
+.cockpit.is-race.is-pad {
+  grid-template-columns: 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    'dash'
+    'pad';
+}
+@media (orientation: landscape) and (min-width: 640px) {
+  .cockpit.is-race {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) 150px;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas:
+      'steer dash pedals'
+      'steer arms pedals'
+      'steer brake pedals';
+  }
+  .cockpit.is-race.is-pad {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: 'dash pad';
+  }
+}
+
+/* Phone held sideways like a steering wheel: brake under the left thumb, throttle under the
+   right one, speed / tilt / weapons in the middle. Lanes change by tilting the phone. */
+@media (orientation: landscape) and (pointer: coarse) {
+  body:has(.cockpit.is-race) .steps {
+    display: none;
+  }
+  body:has(.cockpit.is-race) .topbar {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+  .cockpit.is-race,
+  .cockpit.is-race:not(.is-pad) {
+    grid-template-columns: 112px minmax(0, 1fr) 132px;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'brake dash pedals'
+      'brake steer pedals'
+      'brake arms pedals';
+    gap: 8px;
+  }
+  .cockpit.is-race .brake {
+    min-height: 0;
+    height: 100%;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+  }
+  .cockpit.is-race .throttle {
+    min-height: 0;
+  }
+  .cockpit.is-race .dash {
+    flex-wrap: nowrap;
+    padding: 6px 10px;
+  }
+  .cockpit.is-race .gauge {
+    flex-basis: 84px;
+    height: 70px;
+  }
+  .cockpit.is-race .speed-num {
+    font-size: 1.4rem;
+  }
+  .cockpit.is-race .steer {
+    grid-template-rows: auto;
+    align-content: center;
+  }
+  /* One compact row: the tilt meter with its buttons beside it */
+  .cockpit.is-race .tilt-bar {
+    flex-direction: row;
+    align-items: center;
+    padding: 8px;
+  }
+  .cockpit.is-race .tilt-label {
+    display: none;
+  }
+  .cockpit.is-race .tilt-track {
+    flex: 1;
+    height: 44px;
+  }
+  .cockpit.is-race .tilt-actions {
+    flex-direction: column;
+    gap: 4px;
+  }
+  .cockpit.is-race .tilt-actions .btn {
+    min-height: 28px;
+    padding: 0 8px;
+    font-size: 0.75rem;
+  }
+  .cockpit.is-race .tilt-dot {
+    width: 32px;
+    height: 32px;
+  }
+  /* No room, and rarely needed mid-race (still on the pad's Y) */
+  .cockpit.is-race.is-touch .uturn {
+    display: none;
+  }
+  .cockpit.is-race .weapon {
+    min-height: 52px;
+  }
+}
+
+/* Racing on a phone held upright: ask to turn it */
+.rotate-hint {
+  display: none;
+}
+@media (orientation: portrait) {
+  .cockpit.is-race.is-touch:not(.is-portrait-ok):not(.is-pad) .rotate-hint {
+    display: flex;
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 24px;
+    text-align: center;
+    background: rgb(11 13 18 / 0.94);
+    border-radius: var(--radius);
+  }
+}
+.rotate-hint p {
+  margin: 0;
+  max-width: 28ch;
+}
+.rotate-phone {
+  width: 54px;
+  height: 92px;
+  border: 4px solid var(--text);
+  border-radius: 12px;
+  animation: rotate-phone 2.4s ease-in-out infinite;
+}
+@keyframes rotate-phone {
+  0%,
+  20% {
+    transform: rotate(0deg);
+  }
+  55%,
+  100% {
+    transform: rotate(-90deg);
+  }
+}
+
+.tilt-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+.cockpit:not(.is-tilt) .tilt-track {
+  display: none;
+}
+.tilt-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+}
+.tilt-track {
+  position: relative;
+  height: 56px;
+  border-radius: 28px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--car) 25%, var(--panel-2)), var(--panel-2) 30%, var(--panel-2) 70%, color-mix(in srgb, var(--car) 25%, var(--panel-2)));
+}
+.tilt-mark {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: var(--line);
+}
+.tilt-mark.is-left {
+  left: 20%;
+}
+.tilt-mark.is-right {
+  left: 80%;
+}
+.tilt-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--car);
+  box-shadow: 0 0 12px var(--car);
+  transform: translate(-50%, -50%);
+  transition: left 0.08s linear;
+}
+.tilt-dot.is-hot {
+  outline: 3px solid #fff;
+}
+.tilt-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
 /* ---- Multiplayer: invite sheet (host) and race strip (guest) ---- */
 
 .sheet {

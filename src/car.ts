@@ -188,6 +188,11 @@ export class Car extends EventTarget {
     this.send(Msg.turn(TurnType.UTURN));
   }
 
+  /** Blinks fast for a few seconds so the player can spot which car this is. */
+  identify(): void {
+    this.flashLights(this.state.color, 3000, LightEffect.FLASH, 80);
+  }
+
   setColor(color: string): void {
     this.update({ color });
     this.send(Msg.engineColor(...hexToRgb(color)));
