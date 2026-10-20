@@ -6,6 +6,7 @@ import { Field } from '../src/field';
 import { LightEffect, Msg, MsgId, parseMessage } from '../src/protocol';
 import { Race } from '../src/race';
 import { RaceRecorder } from '../src/stats';
+import { CampaignRun, LEVELS, isUnlocked } from '../src/campaign';
 import { TrackLearner, describeTrack, turnFromWheels } from '../src/track';
 import { layoutTrack } from '../src/trackmap';
 import type { Transport } from '../src/transport';
@@ -344,6 +345,58 @@ describe('Race', () => {
     expect(titles).toContain(`Ganador:${b.car.id}`);
     expect(titles).toContain(`Más rápido:${b.car.id}`);
     expect(titles.some((t) => t.startsWith('Vuelta rápida'))).toBe(true);
+  });
+
+  it('campaign: three missile hits pass the level and unlock the next one', async () => {
+    const env = await grid();
+    const { race, a, b } = env;
+    const store = new Map<string, string>();
+    vi.stubGlobal('localStorage', { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k) });
+    const rec = new RaceRecorder(race, env.battle);
+    const level = LEVELS.find((l) => l.goal.kind === 'missiles')!;
+    env.battle.enabled = true;
+    const run = new CampaignRun(level, a.car, [b.car], race, env.battle, rec);
+    race.start([a.car, b.car], { grid: false });
+    vi.advanceTimersByTime(6000);
+    for (let i = 0; i < 3; i++) {
+      expect(env.battle.fire(a.car, 'missile').ok).toBe(true);
+      env.clock(3500);
+      env.seen();
+      env.battle.fighter(a.car)!.energy = 100;
+      env.battle.fighter(b.car)!.armor = 100;
+    }
+    expect(run.missiles).toBe(3);
+    expect(run.outcome).toBe('won');
+    expect(isUnlocked(level.id + 1)).toBe(true);
+    run.dispose();
+    vi.unstubAllGlobals();
+  });
+
+  it('campaign: being knocked out fails the survive level at once', async () => {
+    const env = await grid();
+    const { race, a, b } = env;
+    const rec = new RaceRecorder(race, env.battle);
+    const level = LEVELS.find((l) => l.goal.kind === 'survive')!;
+    const run = new CampaignRun(level, a.car, [b.car], race, env.battle, rec);
+    race.start([a.car, b.car], { grid: false });
+    vi.advanceTimersByTime(6000);
+    env.battle.fighter(a.car)!.downUntil = env.field.now() + 3000;
+    run.watch();
+    expect(run.outcome).toBe('lost');
+    run.dispose();
+  });
+
+  it('campaign: winning the race passes a "win" level', async () => {
+    const env = await grid();
+    const { race, field, a, b } = env;
+    const rec = new RaceRecorder(race, env.battle);
+    const run = new CampaignRun(LEVELS[0], a.car, [b.car], race, env.battle, rec);
+    race.totalLaps = 1;
+    race.start([a.car, b.car], { grid: false });
+    vi.advanceTimersByTime(6000);
+    lap(field, a.car);
+    expect(run.outcome).toBe('won');
+    run.dispose();
   });
 
   it('does not start without a scanned track', async () => {

@@ -1,5 +1,6 @@
 import { AI_LEVELS, type AiLevel, type AiMove } from './ai';
 import { avatarFor, pickAvatar } from './avatars';
+import { LEVELS, completedLevels, isUnlocked, type Level } from './campaign';
 import type { Battle } from './battle';
 import type { Car } from './car';
 import { COLORS } from './cockpit';
@@ -34,6 +35,8 @@ export interface ScreenDeps {
   start(): void;
   next(): void;
   back(): void;
+  campaign(): void;
+  playLevel(level: Level): void;
 }
 
 // ---- 1. Coches ------------------------------------------------------------------------
@@ -143,6 +146,7 @@ export class TrackScreen {
   private weaponsBtn: HTMLButtonElement;
   private soundBtn: HTMLButtonElement;
   private startBtn: HTMLButtonElement;
+  private campaignBtn: HTMLButtonElement;
   private scanCar?: Car;
 
   constructor(private d: ScreenDeps) {
@@ -153,7 +157,8 @@ export class TrackScreen {
     this.lapsNum = h('span', { class: 'laps-num' });
     this.weaponsBtn = h('button', { class: 'btn btn-ghost btn-sm', onclick: () => this.toggleWeapons() });
     this.soundBtn = h('button', { class: 'btn btn-ghost btn-sm', onclick: () => this.toggleSound() });
-    this.startBtn = h('button', { class: 'btn btn-primary btn-lg', onclick: () => d.start() }, '🏁 Iniciar carrera');
+    this.startBtn = h('button', { class: 'btn btn-primary btn-lg', onclick: () => d.start() }, '🏁 Carrera libre');
+    this.campaignBtn = h('button', { class: 'btn btn-ghost btn-lg', onclick: () => d.campaign() }, '🏆 Campaña');
     const step = (delta: number) => {
       d.race.totalLaps = Math.max(1, Math.min(50, d.race.totalLaps + delta));
       this.update();
@@ -172,7 +177,7 @@ export class TrackScreen {
         this.weaponsBtn,
         this.soundBtn,
       ]),
-      h('footer', { class: 'screen-foot' }, [h('button', { class: 'btn btn-ghost', onclick: () => d.back() }, '← Coches'), this.startBtn]),
+      h('footer', { class: 'screen-foot' }, [h('button', { class: 'btn btn-ghost', onclick: () => d.back() }, '←'), this.campaignBtn, this.startBtn]),
     ]);
   }
 
@@ -208,6 +213,7 @@ export class TrackScreen {
     const why = race.blocker(this.d.cars());
     this.startBtn.disabled = !!why || !!field.scanning;
     this.startBtn.title = why ?? '';
+    this.campaignBtn.disabled = !!why || !!field.scanning;
   }
 
   private toggleWeapons(): void {
@@ -226,6 +232,50 @@ export class TrackScreen {
   }
 }
 
+// ---- Campaign ------------------------------------------------------------------------------
+
+export class CampaignScreen {
+  readonly el: HTMLElement;
+  private list: HTMLElement;
+
+  constructor(private d: ScreenDeps) {
+    this.list = h('ol', { class: 'levels' });
+    this.el = h('section', { class: 'screen' }, [
+      h('header', { class: 'screen-head' }, [
+        h('h1', {}, '🏆 Campaña'),
+        h('p', {}, 'Diez pruebas contra la IA. Supera una para abrir la siguiente. Tu coche es el que conduces tú (pantalla o mando); los demás coches conectados hacen de rivales.'),
+      ]),
+      this.list,
+      h('footer', { class: 'screen-foot' }, h('button', { class: 'btn btn-ghost', onclick: () => d.back() }, '← Pista')),
+    ]);
+  }
+
+  update(): void {
+    const done = completedLevels();
+    const free = this.d.cars().filter((c) => c.ready && !this.d.isGuestCar(c)).length;
+    this.list.replaceChildren(
+      ...LEVELS.map((lv) => {
+        const open = isUnlocked(lv.id, done);
+        const needs = lv.rivals.length + 1;
+        const play = h('button', { class: `btn ${done.has(lv.id) ? 'btn-ghost' : 'btn-primary'} btn-sm`, onclick: () => this.d.playLevel(lv) }, done.has(lv.id) ? 'Repetir' : 'Jugar');
+        play.disabled = !open || free < needs;
+        return h('li', { class: `level ${done.has(lv.id) ? 'is-done' : open ? 'is-open' : 'is-locked'}` }, [
+          h('span', { class: 'level-n' }, done.has(lv.id) ? '✓' : open ? String(lv.id) : '🔒'),
+          h('div', { class: 'level-body' }, [
+            h('strong', {}, lv.name),
+            h('p', {}, lv.brief),
+            h('p', { class: 'level-meta' }, [
+              `${lv.laps} ${lv.laps === 1 ? 'vuelta' : 'vueltas'} · ${lv.weapons ? 'con armas' : 'sin armas'} · rivales: ${lv.rivals.map((r) => AI_LEVELS[r].name.replace('IA ', '')).join(', ')}`,
+              free < needs ? ` · necesitas ${needs} coches conectados` : '',
+            ]),
+          ]),
+          play,
+        ]);
+      }),
+    );
+  }
+}
+
 // ---- Shared bits --------------------------------------------------------------------------
 
 /** This car's all-time record on this phone, in one line. */
@@ -235,7 +285,7 @@ function recordLine(car: Car): HTMLElement | null {
   const bits = [
     `🏆 ${r.wins} ${r.wins === 1 ? 'victoria' : 'victorias'}`,
     `${r.races} ${r.races === 1 ? 'carrera' : 'carreras'}`,
-    r.podiums ? `🥉 ${r.podiums} podios` : '',
+    r.podiums ? `🥉 ${r.podiums} ${r.podiums === 1 ? 'podio' : 'podios'}` : '',
     r.topSpeed ? `⚡ ${fmtSpeed(r.topSpeed)}` : '',
     r.bestLapMs ? `⏱️ ${fmtTime(r.bestLapMs)}` : '',
     r.leadMs ? `👑 ${fmtTime(r.leadMs)} en cabeza` : '',

@@ -11,6 +11,12 @@ El protocolo está portado de [OpenOverdrive](https://github.com/dschwen/OpenOve
 - Velocímetro con velocidad real (la que reporta el coche) y objetivo, batería, estado en pista/cargador.
 - Reconexión automática si se pierde la señal. Botón **STOP** que frena todos los coches.
 - Mantiene la pantalla encendida mientras conduces y vibra al pulsar.
+- Flujo en 3 pasos: **Coches** (conectar, foto o dibujo de cada coche, color, piloto, «Identificar»
+  que lo hace parpadear) → **Pista** (escanear, vueltas, armas) → **Carrera**.
+- Al empezar, los coches van solos a la línea de salida y luego arranca el semáforo.
+- En el móvil se juega en **horizontal como un volante**: inclinar el móvil cambia de carril.
+- **Campaña** de 10 pruebas contra la IA y **estadísticas** guardadas por coche (victorias,
+  velocidad máxima, tiempo en cabeza, vuelta rápida…). Todo explicado en `public/manual.html`.
 
 ### Controles
 

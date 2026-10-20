@@ -163,6 +163,18 @@ export class Race extends EventTarget {
     this.changed();
   }
 
+  /** Ends the race now with the current positions (a campaign challenge already decided). */
+  end(): void {
+    if (!this.live) return;
+    this.clearTimers();
+    this.stopAis();
+    this.entries.forEach((e) => e.car.ready && e.car.brake());
+    this.phase = 'finished';
+    this.lights = 0;
+    this.dispatchEvent(new CustomEvent('over'));
+    this.changed();
+  }
+
   /** Stops the race and every car in it. */
   abort(): void {
     this.clearTimers();

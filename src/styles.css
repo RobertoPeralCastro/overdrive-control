@@ -683,6 +683,63 @@ button {
   min-height: 34px;
 }
 
+.goal-bar {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--warn) 14%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+.levels {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.level {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.level.is-locked {
+  opacity: 0.5;
+}
+.level.is-done {
+  border-color: color-mix(in srgb, var(--ok) 50%, var(--line));
+}
+.level-n {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--panel-2);
+  font-weight: 800;
+}
+.level.is-done .level-n {
+  background: var(--ok);
+  color: #04210d;
+}
+.level-body p {
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.level-body .level-meta {
+  font-size: 0.75rem;
+}
+
 .car-record {
   margin: 0;
   font-size: 0.78rem;

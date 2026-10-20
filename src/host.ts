@@ -9,7 +9,8 @@ import { MapView, fieldCars, fieldSource } from './mapview';
 import { joinUrl, normalizeCode, openRoom, type Channel, type Room } from './net';
 import { LIGHTS, Race, type Entry } from './race';
 import { RaceStrip } from './racestrip';
-import { CarsScreen, TrackScreen, awardsList, standingsList, type ScreenDeps } from './screens';
+import { CampaignRun, LEVELS, type Level } from './campaign';
+import { CampaignScreen, CarsScreen, TrackScreen, awardsList, standingsList, type ScreenDeps } from './screens';
 import { GuestLink, type Action, type GuestEvent, type RaceSummary, type RemoteTransport, type Snapshot } from './remote';
 import { errText, goLandscape, keepAwake, leaveLandscape, showToast, toastElement } from './shell';
 import { SimTransport } from './sim';
@@ -42,7 +43,7 @@ const links: GuestLink[] = [];
 let room: Room | undefined;
 
 /** 1 Coches → 2 Pista → 3 Carrera; "drive" is free driving one car outside a race. */
-type Screen = 'cars' | 'track' | 'race' | 'drive';
+type Screen = 'cars' | 'track' | 'campaign' | 'race' | 'drive';
 let screen: Screen = 'cars';
 /** The car being driven freely (screen "drive"). */
 let driving: Car | undefined;
@@ -126,7 +127,11 @@ function removeCar(car: Car): void {
 }
 
 function stopAll(): void {
-  if (racing()) race.abort();
+  if (racing()) {
+    race.abort();
+    finishCampaign();
+    campaign = undefined;
+  }
   cars.forEach((c) => c.ready && c.brake());
   vibrate([40, 40, 40]);
 }
@@ -212,6 +217,9 @@ function scanTrack(car: Car): void {
 }
 
 function startRace(): void {
+  // A free race: no level being played.
+  finishCampaign();
+  campaign = undefined;
   sound.unlock();
   // This tap is our chance to get the motion sensor for tilt steering once the race starts,
   // and to go full screen in landscape: the phone is held like a steering wheel.
@@ -556,10 +564,77 @@ const deps: ScreenDeps = {
   scan: scanTrack,
   start: startRace,
   next: () => go('track'),
-  back: () => go('cars'),
+  back: () => go(screen === 'campaign' ? 'track' : 'cars'),
+  campaign: () => go('campaign'),
+  playLevel,
 };
 const carsScreen = new CarsScreen(deps);
 const trackScreen = new TrackScreen(deps);
+const campaignScreen = new CampaignScreen(deps);
+
+// ---- Campaign -----------------------------------------------------------------------------
+
+/** The level being played, and what to put back afterwards. */
+let campaign: CampaignRun | undefined;
+let campaignRestore: (() => void) | undefined;
+
+function playLevel(level: Level): void {
+  sound.unlock();
+  TiltSteer.prime();
+  const local = cars.filter((c) => c.ready && !isGuestCar(c));
+  const player = local.find((c) => ['screen', 'pad'].includes(race.driverOf(c).kind));
+  if (!player) return showToast('En la pantalla Coches, elige un coche que conduzcas tú (pantalla o mando)');
+  const rivals = local.filter((c) => c !== player).slice(0, level.rivals.length);
+  if (rivals.length < level.rivals.length) return showToast(`Este nivel necesita ${level.rivals.length + 1} coches conectados`);
+  const why = race.blocker(cars);
+  if (why) return showToast(why);
+
+  // Set the race up for this level, remembering the player's own settings.
+  const before = { laps: race.totalLaps, weapons: battle.enabled, drivers: rivals.map((c) => race.driverOf(c)) };
+  campaignRestore = () => {
+    race.totalLaps = before.laps;
+    battle.enabled = before.weapons;
+    rivals.forEach((c, i) => race.setDriver(c, before.drivers[i]));
+  };
+  race.totalLaps = level.laps;
+  battle.enabled = level.weapons;
+  rivals.forEach((c, i) => race.setDriver(c, { kind: 'ai', level: level.rivals[i] }));
+
+  campaign?.dispose();
+  campaign = new CampaignRun(level, player, rivals, race, battle, recorder);
+  campaign.addEventListener('change', () => screen === 'race' && renderGoal());
+  campaign.addEventListener('done', () => {
+    const run = campaign!;
+    if (race.live) race.end();
+    if (run.outcome === 'won') {
+      sfx('win');
+      announce(`✅ ¡Nivel ${run.level.id} superado!`);
+    } else {
+      sfx('knockout');
+      announce('❌ No lo has conseguido. ¡Inténtalo otra vez!');
+    }
+    finishCampaign();
+    render();
+  });
+  if (race.driverOf(player).kind === 'screen') void goLandscape();
+  race.start([player, ...rivals]);
+  announce(`Nivel ${level.id} · ${level.name}: ${level.brief}`);
+  go('race');
+}
+
+/** Stops following the level and puts the player's settings back (keeps the result on screen). */
+function finishCampaign(): void {
+  campaign?.dispose();
+  campaignRestore?.();
+  campaignRestore = undefined;
+}
+
+const goalBar = h('div', { class: 'goal-bar', role: 'status' });
+
+function renderGoal(): void {
+  goalBar.hidden = !campaign || campaign.outcome !== 'playing';
+  if (campaign) goalBar.textContent = `Nivel ${campaign.level.id} · ${campaign.progress()}`;
+}
 
 let cockpit: Cockpit | undefined;
 let cockpitCar: Car | undefined;
@@ -600,6 +675,9 @@ function render(): void {
   } else if (screen === 'track') {
     trackScreen.update();
     show(trackScreen.el);
+  } else if (screen === 'campaign') {
+    campaignScreen.update();
+    show(campaignScreen.el);
   } else if (screen === 'drive') {
     showCockpit(driving!, false);
   } else {
@@ -615,7 +693,8 @@ function showCockpit(car: Car, raceMode: boolean): void {
     cockpitCar = car;
   }
   cockpit.setRaceMode(raceMode);
-  if (raceMode) show(strip.el, cockpit.el);
+  renderGoal();
+  if (raceMode) show(goalBar, strip.el, cockpit.el);
   else show(h('div', { class: 'drive-bar' }, [h('button', { class: 'btn btn-ghost btn-sm', onclick: () => go('cars') }, '← Coches')]), cockpit.el);
   cockpit.update();
   updateStrip();
@@ -636,6 +715,22 @@ function renderRace(): void {
   if (race.phase === 'grid') {
     head.append(h('h1', {}, '3 · A la salida'), h('p', {}, `Los coches van a la línea de salida (${race.parked.size}/${race.entries.size} colocados). Después empieza la cuenta atrás.`));
     parts.push(h('footer', { class: 'screen-foot' }, h('button', { class: 'btn btn-stop', onclick: stopAll }, 'Parar')));
+  } else if (race.phase === 'finished' && campaign && campaign.outcome !== 'playing') {
+    const run = campaign;
+    const next = LEVELS.find((l) => l.id === run.level.id + 1);
+    head.append(
+      h('h1', {}, run.outcome === 'won' ? `✅ ¡Nivel ${run.level.id} superado!` : `❌ Nivel ${run.level.id}: no lo has conseguido`),
+      h('p', {}, `${run.level.name} · ${run.level.brief}`),
+    );
+    if (recorder.awards.length) head.append(awardsList(recorder.awards.map((a) => ({ icon: a.icon, title: a.title, name: a.car.state.name, value: a.value }))));
+    parts.push(
+      h('footer', { class: 'screen-foot' }, [
+        h('button', { class: 'btn btn-ghost', onclick: () => go('campaign') }, 'Campaña'),
+        run.outcome === 'won' && next
+          ? h('button', { class: 'btn btn-primary btn-lg', onclick: () => playLevel(next) }, `Nivel ${next.id} →`)
+          : h('button', { class: 'btn btn-primary btn-lg', onclick: () => playLevel(run.level) }, 'Reintentar'),
+      ]),
+    );
   } else if (race.phase === 'finished') {
     const winner = race.winner();
     head.append(h('h1', {}, winner ? `🏆 Gana ${winner.car.state.name}` : 'Carrera terminada'));
@@ -667,7 +762,11 @@ function renderSteps(): void {
   };
   steps.replaceChildren(
     step(1, 'Coches', 'cars', true),
-    step(2, 'Pista', 'track', cars.some((c) => c.ready)),
+    (() => {
+      const b = step(2, 'Pista', 'track', cars.some((c) => c.ready));
+      if (screen === 'campaign') b.classList.add('is-active');
+      return b;
+    })(),
     step(3, 'Carrera', 'race', race.phase !== 'setup'),
   );
 }
