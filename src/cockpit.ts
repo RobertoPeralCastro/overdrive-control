@@ -145,6 +145,8 @@ export class Cockpit {
         this.tiltBtn,
       ]),
     ]);
+    // Only shown while racing on a phone (see updateTilt).
+    this.tiltBar.hidden = true;
     // Racing on a phone: hold it sideways like a steering wheel.
     this.rotateHint = h('div', { class: 'rotate-hint' }, [
       h('div', { class: 'rotate-phone', 'aria-hidden': 'true' }),

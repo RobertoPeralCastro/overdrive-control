@@ -3,6 +3,7 @@ import { h, icon } from './dom';
 import { Gamepads } from './gamepad';
 import { MapView } from './mapview';
 import { joinRoom, normalizeCode } from './net';
+import { RaceHud } from './hud';
 import { RaceStrip } from './racestrip';
 import { awardsList } from './screens';
 import { GuestSession, guestModel, type GuestEvent, type RaceSummary } from './remote';
@@ -26,6 +27,7 @@ export function startGuest(rawCode: string, demo: boolean): void {
   let session: GuestSession | undefined;
   let transport: Transport | undefined;
   let cockpit: Cockpit | undefined;
+  let hud: RaceHud | undefined;
   let standingsOpen = false;
 
   const app = document.getElementById('app')!;
@@ -140,18 +142,43 @@ export function startGuest(rawCode: string, demo: boolean): void {
 
   function onSnapshot(): void {
     if (stage !== 'driving') return;
-    // While racing, only the controls (and tilt steering on a phone).
-    const phase = session?.snap?.race.phase;
-    cockpit?.setRaceMode(phase === 'countdown' || phase === 'running');
-    cockpit?.update();
-    renderStrip();
+    renderDriving();
     if (standingsOpen) renderSheet();
+  }
+
+  /** Racing: the full-screen HUD. Otherwise (waiting, finished): the cockpit with the race strip. */
+  function renderDriving(): void {
+    if (!session) return;
+    const r = session.snap?.race;
+    const mine = r?.standings.find((s) => s.me);
+    const racing = !!r && (r.phase === 'grid' || r.phase === 'countdown' || r.phase === 'running') && !mine?.place;
+    const base = () => guestModel(session!, { padName, reconnect: () => void reconnectCar(), leave, toast: showToast });
+    if (racing) {
+      if (!hud) {
+        cockpit?.destroy();
+        cockpit = undefined;
+        hud = new RaceHud({ ...base(), race: () => session?.snap?.race, goal: () => undefined, openStandings: openSheet, exit: () => session?.control.brake() });
+        main.replaceChildren(hud.el);
+      }
+      hud.update();
+    } else {
+      if (!cockpit) {
+        hud?.destroy();
+        hud = undefined;
+        cockpit = new Cockpit(base());
+        main.replaceChildren(strip.el, cockpit.el);
+      }
+      cockpit.update();
+      renderStrip();
+    }
   }
 
   function render(): void {
     if (stage !== 'driving') {
       cockpit?.destroy();
       cockpit = undefined;
+      hud?.destroy();
+      hud = undefined;
     }
     if (stage === 'joining') {
       main.replaceChildren(card([h('div', { class: 'spinner' }), h('p', {}, `Uniéndote a la partida ${code.toUpperCase()}…`)]));
@@ -174,11 +201,8 @@ export function startGuest(rawCode: string, demo: boolean): void {
           supported ? h('button', { class: 'btn btn-primary btn-lg', onclick: () => void connectCar() }, [icon('bluetooth'), demo ? 'Añadir coche simulado' : 'Conectar mi coche']) : null,
         ]),
       );
-    } else if (stage === 'driving' && session && !cockpit) {
-      cockpit = new Cockpit(guestModel(session, { padName, reconnect: () => void reconnectCar(), leave, toast: showToast }));
-      main.replaceChildren(strip.el, cockpit.el);
-      cockpit.update();
-      renderStrip();
+    } else if (stage === 'driving' && session && !cockpit && !hud) {
+      renderDriving();
     }
   }
 

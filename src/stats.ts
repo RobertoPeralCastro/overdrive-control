@@ -72,7 +72,13 @@ export function recordOf(car: Car): CarRecord | undefined {
   return loadRecords()[recordKey(car)];
 }
 
-export const fmtSpeed = (mmS: number) => `${Math.round(mmS).toLocaleString('es-ES')} mm/s`;
+/**
+ * Speed as a real car of this size would feel it: Overdrive cars are about 1:50, so
+ * 1 m/s on the track reads as 180 km/h. Games show km/h; mm/s means nothing to a player.
+ */
+export const SCALE = 50;
+export const toKmh = (mmS: number) => Math.round((mmS / 1000) * 3.6 * SCALE);
+export const fmtSpeed = (mmS: number) => `${toKmh(mmS)} km/h`;
 export const fmtTime = (ms: number) => (ms >= 60_000 ? `${Math.floor(ms / 60_000)} min ${Math.round((ms % 60_000) / 1000)} s` : `${(ms / 1000).toFixed(1)} s`);
 
 export class RaceRecorder extends EventTarget {

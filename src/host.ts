@@ -8,13 +8,14 @@ import { Gamepads } from './gamepad';
 import { MapView, fieldCars, fieldSource } from './mapview';
 import { joinUrl, normalizeCode, openRoom, type Channel, type Room } from './net';
 import { LIGHTS, Race, type Entry } from './race';
-import { RaceStrip } from './racestrip';
+import { avatarFor } from './avatars';
 import { CampaignRun, LEVELS, type Level } from './campaign';
-import { CampaignScreen, CarsScreen, TrackScreen, awardsList, standingsList, type ScreenDeps } from './screens';
+import { RaceHud, type HudModel } from './hud';
+import { CampaignScreen, CarsScreen, HomeScreen, TrackScreen, awardsList, standingsList, type ScreenDeps } from './screens';
 import { GuestLink, type Action, type GuestEvent, type RaceSummary, type RemoteTransport, type Snapshot } from './remote';
 import { errText, goLandscape, keepAwake, leaveLandscape, showToast, toastElement } from './shell';
 import { SimTransport } from './sim';
-import { RaceRecorder } from './stats';
+import { RaceRecorder, loadRecords } from './stats';
 import { TiltSteer } from './tilt';
 import { sound, type SoundName } from './sound';
 import { describeTrack } from './track';
@@ -42,27 +43,33 @@ recorder.addEventListener('awards', () => {
 const links: GuestLink[] = [];
 let room: Room | undefined;
 
-/** 1 Coches → 2 Pista → 3 Carrera; "drive" is free driving one car outside a race. */
-type Screen = 'cars' | 'track' | 'campaign' | 'race' | 'drive';
-let screen: Screen = 'cars';
+/**
+ * Menu → Garaje (cars) / Preparar carrera (track) / Campaña → Carrera (race).
+ * "drive" is free driving one car outside a race.
+ */
+type Screen = 'home' | 'cars' | 'track' | 'campaign' | 'race' | 'drive';
+let screen: Screen = 'home';
 /** The car being driven freely (screen "drive"). */
 let driving: Car | undefined;
 
 const app = document.getElementById('app')!;
-const steps = h('nav', { class: 'steps', 'aria-label': 'Pasos' });
+const titleText = h('h1', { class: 'screen-title' });
+const titlebar = h('div', { class: 'titlebar' }, [h('button', { class: 'back', onclick: () => goBack(), 'aria-label': 'Atrás' }, '‹'), titleText]);
+const trophies = h('span', { class: 'trophies', title: 'Victorias en este móvil' });
 const stage = h('main', { class: 'stage stage-stack' });
 const invite = h('dialog', { class: 'sheet', 'aria-label': 'Jugar con otro móvil' });
 const standingsSheet = h('dialog', { class: 'sheet', 'aria-label': 'Clasificación' });
 
 app.append(
   h('header', { class: 'topbar' }, [
-    h('div', { class: 'brand' }, [h('span', { class: 'brand-mark' }), 'Overdrive', h('em', {}, ' control')]),
+    h('div', { class: 'brand' }, [h('span', { class: 'brand-mark' }), 'Overdrive']),
     h('div', { class: 'top-actions' }, [
+      trophies,
       h('button', { class: 'btn btn-ghost', onclick: openInvite, title: 'Jugar con otro móvil', 'aria-label': 'Jugar con otro móvil' }, '📱'),
       h('button', { class: 'btn btn-stop', onclick: stopAll, title: 'Frenar todos los coches (Esc)' }, 'STOP'),
     ]),
   ]),
-  steps,
+  titlebar,
   stage,
   toastElement(),
   invite,
@@ -489,7 +496,7 @@ function renderInvite(): void {
             h('button', { class: 'btn btn-ghost btn-sm', onclick: () => shareLink(url!) }, 'Compartir enlace'),
             h('ul', { class: 'guest-list' }, guests.length ? guests : [h('li', { class: 'muted' }, 'Aún no se ha unido nadie')]),
             h('p', { class: 'race-hint' }, [
-              'Cada jugador conecta su propio coche desde su móvil. La carrera se maneja desde aquí, en 🏁 Carrera. ',
+              'Cada jugador conecta su propio coche desde su móvil. La carrera se empieza desde aquí, en Preparar carrera.',
               h('a', { href: 'manual.html#multijugador', target: '_blank', rel: 'noopener' }, 'Ayuda'),
             ]),
           ]),
@@ -564,10 +571,12 @@ const deps: ScreenDeps = {
   scan: scanTrack,
   start: startRace,
   next: () => go('track'),
-  back: () => go(screen === 'campaign' ? 'track' : 'cars'),
+  back: () => goBack(),
   campaign: () => go('campaign'),
+  garage: () => go('cars'),
   playLevel,
 };
+const homeScreen = new HomeScreen(deps);
 const carsScreen = new CarsScreen(deps);
 const trackScreen = new TrackScreen(deps);
 const campaignScreen = new CampaignScreen(deps);
@@ -581,9 +590,13 @@ let campaignRestore: (() => void) | undefined;
 function playLevel(level: Level): void {
   sound.unlock();
   TiltSteer.prime();
+  if (!field.lap) {
+    showToast('Antes de la campaña, escanea la pista');
+    return go('track');
+  }
   const local = cars.filter((c) => c.ready && !isGuestCar(c));
   const player = local.find((c) => ['screen', 'pad'].includes(race.driverOf(c).kind));
-  if (!player) return showToast('En la pantalla Coches, elige un coche que conduzcas tú (pantalla o mando)');
+  if (!player) return showToast('En el garaje, elige un coche que conduzcas tú (pantalla o mando)');
   const rivals = local.filter((c) => c !== player).slice(0, level.rivals.length);
   if (rivals.length < level.rivals.length) return showToast(`Este nivel necesita ${level.rivals.length + 1} coches conectados`);
   const why = race.blocker(cars);
@@ -602,7 +615,7 @@ function playLevel(level: Level): void {
 
   campaign?.dispose();
   campaign = new CampaignRun(level, player, rivals, race, battle, recorder);
-  campaign.addEventListener('change', () => screen === 'race' && renderGoal());
+  campaign.addEventListener('change', () => hud?.update());
   campaign.addEventListener('done', () => {
     const run = campaign!;
     if (race.live) race.end();
@@ -629,28 +642,34 @@ function finishCampaign(): void {
   campaignRestore = undefined;
 }
 
-const goalBar = h('div', { class: 'goal-bar', role: 'status' });
-
-function renderGoal(): void {
-  goalBar.hidden = !campaign || campaign.outcome !== 'playing';
-  if (campaign) goalBar.textContent = `Nivel ${campaign.level.id} · ${campaign.progress()}`;
+function goalText(): string | undefined {
+  return campaign && campaign.outcome === 'playing' ? `Nivel ${campaign.level.id} · ${campaign.progress()}` : undefined;
 }
+
+// ---- Rendering ----------------------------------------------------------------------------
 
 let cockpit: Cockpit | undefined;
 let cockpitCar: Car | undefined;
-/** Lights, lap and position above the cockpit while racing. */
-const strip = new RaceStrip(() => openStandings());
-/** The race screen without own controls: map and standings (or the grid / results). */
+/** The racing HUD of this phone's car. */
+let hud: RaceHud | undefined;
+let hudCar: Car | undefined;
+/** Race screen without own controls: the circuit and the standings. */
 let raceMap: MapView | undefined;
 
 function updateStrip(): void {
-  strip.update(cockpitCar && race.entries.has(cockpitCar) ? raceSummary(cockpitCar) : undefined);
+  hud?.update();
 }
 
 function dropCockpit(): void {
   cockpit?.destroy();
   cockpit = undefined;
   cockpitCar = undefined;
+}
+
+function dropHud(): void {
+  hud?.destroy();
+  hud = undefined;
+  hudCar = undefined;
 }
 
 function dropRaceMap(): void {
@@ -662,14 +681,35 @@ function show(...els: HTMLElement[]): void {
   if (els.some((el, i) => stage.children[i] !== el) || stage.children.length !== els.length) stage.replaceChildren(...els);
 }
 
+const TITLES: Record<Screen, string> = {
+  home: '',
+  cars: 'Garaje',
+  track: 'Preparar carrera',
+  campaign: 'Campaña',
+  drive: 'Prueba libre',
+  race: 'Carrera',
+};
+
+function goBack(): void {
+  if (screen === 'drive') return go('cars');
+  if (screen === 'race' && race.live) return stopAll();
+  go('home');
+}
+
 function render(): void {
   if (screen === 'race' && race.phase === 'setup') screen = 'track';
   if (screen === 'drive' && !driving) screen = 'cars';
-  renderSteps();
-  if (screen !== 'drive' && screen !== 'race') dropCockpit();
-  if (screen !== 'race') dropRaceMap();
+  if (screen !== 'drive') dropCockpit();
+  if (screen !== 'race') {
+    dropRaceMap();
+    dropHud();
+  }
+  renderTitle();
 
-  if (screen === 'cars') {
+  if (screen === 'home') {
+    homeScreen.update();
+    show(homeScreen.el);
+  } else if (screen === 'cars') {
     carsScreen.update();
     show(carsScreen.el);
   } else if (screen === 'track') {
@@ -679,96 +719,132 @@ function render(): void {
     campaignScreen.update();
     show(campaignScreen.el);
   } else if (screen === 'drive') {
-    showCockpit(driving!, false);
+    showCockpit(driving!);
   } else {
     renderRace();
   }
 }
 
-function showCockpit(car: Car, raceMode: boolean): void {
+function renderTitle(): void {
+  const wins = Object.values(loadRecords()).reduce((n, r) => n + r.wins, 0);
+  trophies.textContent = `🏆 ${wins}`;
+  titlebar.hidden = screen === 'home';
+  titleText.textContent = screen === 'race' && race.phase === 'finished' ? 'Resultados' : TITLES[screen];
+}
+
+function showCockpit(car: Car): void {
   dropRaceMap();
   if (cockpitCar !== car || !cockpit) {
     dropCockpit();
     cockpit = new Cockpit(hostModel(car));
     cockpitCar = car;
   }
-  cockpit.setRaceMode(raceMode);
-  renderGoal();
-  if (raceMode) show(goalBar, strip.el, cockpit.el);
-  else show(h('div', { class: 'drive-bar' }, [h('button', { class: 'btn btn-ghost btn-sm', onclick: () => go('cars') }, '← Coches')]), cockpit.el);
+  cockpit.setRaceMode(false);
+  show(cockpit.el);
   cockpit.update();
-  updateStrip();
 }
 
-/** Screen 3: lining up, then only the controls of this phone's car (or the circuit with a pad). */
+function hostHud(car: Car): HudModel {
+  return {
+    ...hostModel(car),
+    race: () => raceSummary(car),
+    goal: goalText,
+    openStandings,
+    exit: stopAll,
+  };
+}
+
+/** Screen 3: this phone's car gets the full-screen HUD; otherwise the circuit; then the podium. */
 function renderRace(): void {
   const mine = myRacer();
-  if ((race.phase === 'countdown' || race.phase === 'running') && mine && !race.entries.get(mine)?.place) {
-    showCockpit(mine, true);
+  if (race.live && mine && !race.entries.get(mine)?.place) {
+    dropRaceMap();
+    if (hudCar !== mine || !hud) {
+      dropHud();
+      hud = new RaceHud(hostHud(mine));
+      hudCar = mine;
+    }
+    show(hud.el);
+    hud.update();
     return;
   }
-  dropCockpit();
+  dropHud();
+  if (race.phase === 'finished') return renderResults();
+
   raceMap ??= new MapView(() => fieldSource(field, { cars: () => cars, me: mine }));
   raceMap.update();
   const head = h('header', { class: 'screen-head' });
-  const parts: (HTMLElement | null)[] = [];
-  if (race.phase === 'grid') {
-    head.append(h('h1', {}, '3 · A la salida'), h('p', {}, `Los coches van a la línea de salida (${race.parked.size}/${race.entries.size} colocados). Después empieza la cuenta atrás.`));
-    parts.push(h('footer', { class: 'screen-foot' }, h('button', { class: 'btn btn-stop', onclick: stopAll }, 'Parar')));
-  } else if (race.phase === 'finished' && campaign && campaign.outcome !== 'playing') {
-    const run = campaign;
-    const next = LEVELS.find((l) => l.id === run.level.id + 1);
-    head.append(
-      h('h1', {}, run.outcome === 'won' ? `✅ ¡Nivel ${run.level.id} superado!` : `❌ Nivel ${run.level.id}: no lo has conseguido`),
-      h('p', {}, `${run.level.name} · ${run.level.brief}`),
-    );
-    if (recorder.awards.length) head.append(awardsList(recorder.awards.map((a) => ({ icon: a.icon, title: a.title, name: a.car.state.name, value: a.value }))));
-    parts.push(
-      h('footer', { class: 'screen-foot' }, [
-        h('button', { class: 'btn btn-ghost', onclick: () => go('campaign') }, 'Campaña'),
-        run.outcome === 'won' && next
-          ? h('button', { class: 'btn btn-primary btn-lg', onclick: () => playLevel(next) }, `Nivel ${next.id} →`)
-          : h('button', { class: 'btn btn-primary btn-lg', onclick: () => playLevel(run.level) }, 'Reintentar'),
-      ]),
-    );
-  } else if (race.phase === 'finished') {
-    const winner = race.winner();
-    head.append(h('h1', {}, winner ? `🏆 Gana ${winner.car.state.name}` : 'Carrera terminada'));
-    if (recorder.awards.length) head.append(awardsList(recorder.awards.map((a) => ({ icon: a.icon, title: a.title, name: a.car.state.name, value: a.value }))));
-    parts.push(
-      h('footer', { class: 'screen-foot' }, [
-        h('button', { class: 'btn btn-ghost', onclick: () => go('cars') }, 'Cambiar coches'),
-        h('button', { class: 'btn btn-primary btn-lg', onclick: () => go('track') }, 'Otra carrera'),
-      ]),
-    );
-  } else {
-    head.append(h('h1', {}, race.phase === 'countdown' ? 'Preparados…' : `Carrera · ${race.totalLaps} ${race.totalLaps === 1 ? 'vuelta' : 'vueltas'}`));
-    parts.push(h('footer', { class: 'screen-foot' }, h('button', { class: 'btn btn-stop', onclick: stopAll }, 'Parar carrera')));
-  }
+  if (race.phase === 'grid') head.append(h('h1', {}, 'A la salida'), h('p', {}, `Los coches van a la línea de salida (${race.parked.size}/${race.entries.size}).`));
+  else head.append(h('h1', {}, race.phase === 'countdown' ? 'Preparados…' : `Carrera · ${race.totalLaps} ${race.totalLaps === 1 ? 'vuelta' : 'vueltas'}`));
   const lights =
     race.phase === 'countdown'
       ? h('div', { class: 'lights is-on', 'aria-hidden': 'true' }, Array.from({ length: LIGHTS }, (_, i) => h('span', { class: `bulb ${i < race.lights ? 'is-lit' : ''}` })))
       : null;
   stage.replaceChildren(
-    h('section', { class: 'screen' }, [head, h('div', { class: 'track-stage' }, [raceMap.el, lights]), standingsList(race, battle, cars), ...parts].filter((x): x is HTMLElement => !!x)),
+    h('section', { class: 'screen screen-spectate' }, [
+      head,
+      h('div', { class: 'track-stage' }, lights ? [raceMap.el, lights] : [raceMap.el]),
+      standingsList(race, battle, cars),
+      h('footer', { class: 'screen-foot' }, h('button', { class: 'btn btn-stop', onclick: stopAll }, 'Parar carrera')),
+    ]),
   );
 }
 
-function renderSteps(): void {
-  const step = (n: number, label: string, to: Screen, enabled: boolean) => {
-    const b = h('button', { class: `step ${screen === to || (to === 'cars' && screen === 'drive') ? 'is-active' : ''}`, onclick: () => go(to) }, [h('span', { class: 'step-n' }, String(n)), label]);
-    b.disabled = !enabled;
-    return b;
-  };
-  steps.replaceChildren(
-    step(1, 'Coches', 'cars', true),
-    (() => {
-      const b = step(2, 'Pista', 'track', cars.some((c) => c.ready));
-      if (screen === 'campaign') b.classList.add('is-active');
-      return b;
-    })(),
-    step(3, 'Carrera', 'race', race.phase !== 'setup'),
+/** The podium, awards and what next. */
+function renderResults(): void {
+  dropRaceMap();
+  const awards = recorder.awards.map((a) => ({ icon: a.icon, title: a.title, name: a.car.state.name, value: a.value }));
+  const run = campaign && campaign.outcome !== 'playing' ? campaign : undefined;
+  const winner = race.winner();
+  const title = run
+    ? run.outcome === 'won'
+      ? `¡Nivel ${run.level.id} superado!`
+      : `Nivel ${run.level.id}: inténtalo otra vez`
+    : winner
+      ? `¡Gana ${winner.car.state.name}!`
+      : 'Carrera terminada';
+  const next = run && LEVELS.find((l) => l.id === run.level.id + 1);
+  const actions = run
+    ? [
+        h('button', { class: 'btn btn-ghost', onclick: () => go('campaign') }, 'Campaña'),
+        run.outcome === 'won' && next
+          ? h('button', { class: 'btn btn-primary btn-lg', onclick: () => playLevel(next) }, `Nivel ${next.id} ›`)
+          : h('button', { class: 'btn btn-primary btn-lg', onclick: () => playLevel(run.level) }, 'Reintentar'),
+      ]
+    : [
+        h('button', { class: 'btn btn-ghost', onclick: () => go('home') }, 'Menú'),
+        h('button', { class: 'btn btn-primary btn-lg', onclick: startRace }, 'Revancha'),
+      ];
+  showOnce(
+    h('section', { class: `screen results ${run ? (run.outcome === 'won' ? 'is-won' : 'is-lost') : ''}` }, [
+      h('header', { class: 'results-head' }, [h('h1', {}, title), run ? h('p', {}, `${run.level.name} · ${run.level.brief}`) : null]),
+      podium(),
+      awards.length ? awardsList(awards) : null,
+      h('footer', { class: 'screen-foot' }, actions),
+    ].filter((x): x is HTMLElement => !!x)),
   );
+}
+
+/** Puts a rebuilt screen on stage only if it shows something new, so its entry animation plays once. */
+function showOnce(el: HTMLElement): void {
+  if (stage.children.length === 1 && stage.firstElementChild!.outerHTML === el.outerHTML) return;
+  stage.replaceChildren(el);
+}
+
+function podium(): HTMLElement {
+  const order = race.standings();
+  const step = (place: number) => {
+    const e = order[place - 1];
+    if (!e) return h('div', { class: `podium-step is-p${place} is-empty` });
+    const best = e.lapTimes.length ? Math.min(...e.lapTimes) : undefined;
+    return h('div', { class: `podium-step is-p${place}`, style: `--car:${e.car.state.color}` }, [
+      h('img', { class: 'podium-avatar', src: avatarFor(e.car.id, e.car.state.name, e.car.state.color), alt: '' }),
+      h('strong', { class: 'podium-name' }, e.car.state.name),
+      h('span', { class: 'podium-time' }, best ? `mejor ${(best / 1000).toFixed(2)} s` : e.place ? '' : 'sin terminar'),
+      h('div', { class: 'podium-block' }, h('span', {}, String(place))),
+    ]);
+  };
+  return h('div', { class: 'podium' }, [step(2), step(1), step(3)]);
 }
 
 function openStandings(): void {
@@ -785,10 +861,11 @@ function renderStandings(): void {
 
 function onCarChange(car: Car): void {
   if (cockpitCar === car) cockpit?.update();
+  if (hudCar === car) hud?.update();
   if (isGuestCar(car)) renderInvite();
-  if (screen === 'cars') carsScreen.update();
+  if (screen === 'home') homeScreen.update();
+  else if (screen === 'cars') carsScreen.update();
   else if (screen === 'track') trackScreen.update();
-  renderSteps();
 }
 
 field.addEventListener('change', () => screen === 'track' && trackScreen.update());

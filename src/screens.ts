@@ -36,7 +36,61 @@ export interface ScreenDeps {
   next(): void;
   back(): void;
   campaign(): void;
+  garage(): void;
   playLevel(level: Level): void;
+}
+
+// ---- Main menu ----------------------------------------------------------------------------
+
+export class HomeScreen {
+  readonly el: HTMLElement;
+  private hero: HTMLElement;
+  private campaignTile: HTMLButtonElement;
+  private garageTile: HTMLButtonElement;
+  private raceBtn: HTMLButtonElement;
+
+  constructor(private d: ScreenDeps) {
+    this.hero = h('div', { class: 'hero-car' });
+    this.raceBtn = h('button', { class: 'btn btn-primary menu-race', onclick: () => d.next() }, [h('span', {}, 'Carrera'), h('small', {}, 'rápida')]);
+    this.campaignTile = h('button', { class: 'menu-tile is-campaign', onclick: () => d.campaign() });
+    this.garageTile = h('button', { class: 'menu-tile is-garage', onclick: () => d.garage() });
+    this.el = h('section', { class: 'home' }, [
+      h('div', { class: 'home-logo' }, [h('span', { class: 'home-logo-a' }, 'OVERDRIVE'), h('span', { class: 'home-logo-b' }, 'RACING')]),
+      this.hero,
+      h('nav', { class: 'home-menu' }, [
+        this.raceBtn,
+        this.campaignTile,
+        h('button', { class: 'menu-tile is-multi', onclick: () => d.invite() }, [h('span', { class: 'menu-icon' }, '📱'), h('strong', {}, 'Multijugador'), h('small', {}, 'cada uno con su móvil')]),
+        this.garageTile,
+      ]),
+    ]);
+  }
+
+  update(): void {
+    const cars = this.d.cars();
+    const mine = cars.find((c) => c.ready && this.d.race.driverOf(c).kind === 'screen') ?? cars.find((c) => c.ready) ?? cars[0];
+    if (mine) {
+      const rec = recordOf(mine);
+      this.hero.replaceChildren(
+        h('button', { class: 'hero-platform', style: `--car:${mine.state.color}`, onclick: () => this.d.garage(), 'aria-label': 'Ir al garaje' }, [
+          h('img', { src: avatarFor(mine.id, mine.state.name, mine.state.color), alt: '' }),
+        ]),
+        h('div', { class: 'hero-name' }, mine.state.name),
+        h('div', { class: 'hero-stats' }, rec?.races ? `🏆 ${rec.wins} · ${rec.races} carreras · ⚡ ${fmtSpeed(rec.topSpeed)}` : mine.ready ? 'Listo para correr' : 'Conectando…'),
+      );
+    } else {
+      this.hero.replaceChildren(
+        h('button', { class: 'hero-platform is-empty', onclick: () => this.d.addCar() }, [h('span', {}, '+')]),
+        h('div', { class: 'hero-name' }, this.d.demo ? 'Añade un coche simulado' : 'Conecta tu coche'),
+        h('div', { class: 'hero-stats' }, 'Enciéndelo, ponlo en la pista y tócalo aquí'),
+      );
+    }
+    const done = completedLevels().size;
+    this.campaignTile.replaceChildren(h('span', { class: 'menu-icon' }, '🏆'), h('strong', {}, 'Campaña'), h('small', {}, `${done}/${LEVELS.length} superados`));
+    this.garageTile.replaceChildren(h('span', { class: 'menu-icon' }, '🏎️'), h('strong', {}, 'Garaje'), h('small', {}, `${cars.length} ${cars.length === 1 ? 'coche' : 'coches'}`));
+    this.raceBtn.disabled = !cars.some((c) => c.ready);
+    this.campaignTile.disabled = !cars.some((c) => c.ready);
+  }
 }
 
 // ---- 1. Coches ------------------------------------------------------------------------
@@ -50,12 +104,11 @@ export class CarsScreen {
   constructor(private d: ScreenDeps) {
     this.list = h('div', { class: 'car-cards' });
     this.padsLine = h('p', { class: 'race-hint' });
-    this.nextBtn = h('button', { class: 'btn btn-primary btn-lg', onclick: () => d.next() }, 'Siguiente: la pista →');
+    this.nextBtn = h('button', { class: 'btn btn-primary btn-lg', onclick: () => d.next() }, 'Preparar carrera ›');
     const supported = d.demo || bluetoothAvailable();
     this.el = h('section', { class: 'screen' }, [
       h('header', { class: 'screen-head' }, [
-        h('h1', {}, d.demo ? '1 · Coches (demo)' : '1 · Coches'),
-        h('p', {}, 'Conecta los coches, ponle a cada uno su imagen y elige quién lo conduce. «Identificar» hace parpadear el coche para que sepas cuál es.'),
+        h('p', {}, `${d.demo ? 'Modo demo · ' : ''}Desliza para ver tus coches. Toca la imagen para cambiarla, elige quién conduce y usa «Identificar» para que el coche parpadee.`),
         supported
           ? null
           : h('p', { class: 'warn' }, [
@@ -157,14 +210,14 @@ export class TrackScreen {
     this.lapsNum = h('span', { class: 'laps-num' });
     this.weaponsBtn = h('button', { class: 'btn btn-ghost btn-sm', onclick: () => this.toggleWeapons() });
     this.soundBtn = h('button', { class: 'btn btn-ghost btn-sm', onclick: () => this.toggleSound() });
-    this.startBtn = h('button', { class: 'btn btn-primary btn-lg', onclick: () => d.start() }, '🏁 Carrera libre');
-    this.campaignBtn = h('button', { class: 'btn btn-ghost btn-lg', onclick: () => d.campaign() }, '🏆 Campaña');
+    this.startBtn = h('button', { class: 'btn btn-primary btn-lg', onclick: () => d.start() }, '¡A correr! ›');
+    this.campaignBtn = h('button', { class: 'btn btn-ghost btn-lg', onclick: () => d.campaign() }, 'Campaña');
     const step = (delta: number) => {
       d.race.totalLaps = Math.max(1, Math.min(50, d.race.totalLaps + delta));
       this.update();
     };
-    this.el = h('section', { class: 'screen' }, [
-      h('header', { class: 'screen-head' }, [h('h1', {}, '2 · Pista'), h('p', {}, 'Escanea la pista: un coche da una vuelta despacio y la app aprende su forma.')]),
+    this.el = h('section', { class: 'screen setup' }, [
+      h('header', { class: 'screen-head' }, [h('p', {}, 'Escanea la pista: un coche da una vuelta despacio y la app aprende su forma.')]),
       h('div', { class: 'track-stage' }, this.map.el),
       this.info,
       this.scanRow,
@@ -177,7 +230,7 @@ export class TrackScreen {
         this.weaponsBtn,
         this.soundBtn,
       ]),
-      h('footer', { class: 'screen-foot' }, [h('button', { class: 'btn btn-ghost', onclick: () => d.back() }, '←'), this.campaignBtn, this.startBtn]),
+      h('footer', { class: 'screen-foot' }, [this.campaignBtn, this.startBtn]),
     ]);
   }
 
@@ -242,11 +295,9 @@ export class CampaignScreen {
     this.list = h('ol', { class: 'levels' });
     this.el = h('section', { class: 'screen' }, [
       h('header', { class: 'screen-head' }, [
-        h('h1', {}, '🏆 Campaña'),
         h('p', {}, 'Diez pruebas contra la IA. Supera una para abrir la siguiente. Tu coche es el que conduces tú (pantalla o mando); los demás coches conectados hacen de rivales.'),
       ]),
       this.list,
-      h('footer', { class: 'screen-foot' }, h('button', { class: 'btn btn-ghost', onclick: () => d.back() }, '← Pista')),
     ]);
   }
 

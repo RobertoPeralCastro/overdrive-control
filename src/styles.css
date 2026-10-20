@@ -679,8 +679,9 @@ button {
   gap: 6px;
 }
 .car-card-actions .btn {
-  padding: 0 10px;
+  padding: 0 9px;
   min-height: 34px;
+  font-size: 0.8rem;
 }
 
 .goal-bar {

@@ -5,14 +5,15 @@ El protocolo está portado de [OpenOverdrive](https://github.com/dschwen/OpenOve
 
 ## Qué hace
 
-- Conecta uno o varios coches (cada uno con su pestaña y su color de luces).
-- Acelerador vertical tipo "control de crucero": arrástralo y la velocidad se queda ahí.
-- Freno, cambio de carril izquierda/derecha y media vuelta.
-- Velocímetro con velocidad real (la que reporta el coche) y objetivo, batería, estado en pista/cargador.
+- Interfaz de **juego de carreras**: menú principal (Carrera rápida, Campaña, Multijugador, Garaje),
+  garaje con carrusel de coches, pantalla de carrera a pantalla completa y podio con premios al final.
+- Flujo en 3 pasos: **Garaje** (conectar, foto o dibujo de cada coche, color, piloto, «Identificar»
+  que lo hace parpadear) → **Preparar carrera** (escanear, vueltas, armas) → **Carrera**.
+- En carrera: pedal de **freno** a la izquierda, **gas** a la derecha (control de crucero: la velocidad se queda
+  donde lo dejas), botones de armas con recarga, velocidad en km/h a escala 1:50 con volante, posición, vuelta,
+  blindaje, energía y minimapa. Con mando, el circuito en grande.
 - Reconexión automática si se pierde la señal. Botón **STOP** que frena todos los coches.
-- Mantiene la pantalla encendida mientras conduces y vibra al pulsar.
-- Flujo en 3 pasos: **Coches** (conectar, foto o dibujo de cada coche, color, piloto, «Identificar»
-  que lo hace parpadear) → **Pista** (escanear, vueltas, armas) → **Carrera**.
+- Mantiene la pantalla encendida mientras conduces y vibra al pulsar o al recibir un impacto.
 - Al empezar, los coches van solos a la línea de salida y luego arranca el semáforo.
 - En el móvil se juega en **horizontal como un volante**: inclinar el móvil cambia de carril.
 - **Campaña** de 10 pruebas contra la IA y **estadísticas** guardadas por coche (victorias,
@@ -22,38 +23,37 @@ El protocolo está portado de [OpenOverdrive](https://github.com/dschwen/OpenOve
 
 | Acción            | Pantalla            | Teclado          | Mando (Xbox/PS)          |
 |-------------------|---------------------|------------------|--------------------------|
-| Velocidad         | Acelerador / ▲ ▼    | W / S, ↑ / ↓     | RT (gatillo), cruceta ▲▼ |
-| Frenar            | FRENO               | Espacio          | LT o B                   |
-| Carril izq./der.  | ‹ Carril / Carril › | A / D, ← / →     | LB / RB, cruceta, stick  |
-| Media vuelta      | Media vuelta        | U                | Y                        |
+| Velocidad         | Pedal GAS           | W / S, ↑ / ↓     | RT (gatillo), cruceta ▲▼ |
+| Frenar            | Pedal FRENO         | Espacio          | LT o B                   |
+| Carril izq./der.  | Inclinar / ◀ ▶      | A / D, ← / →     | LB / RB, cruceta, stick  |
+| Media vuelta      | Prueba libre        | U                | Y                        |
 | Láser / Misil     | Botones de armas    | Q / E            | A / X                    |
 | Pulso / Escudo    | Botones de armas    | R / F            | L3 / R3                  |
-| Empezar carrera   | Empezar carrera     | —                | Start                    |
-| Frenar todos      | STOP                | Esc              | Select / Back            |
-| Cambiar de coche  | Pestañas            | 1–9 (0: carrera) | —                        |
+| Empezar carrera   | ¡A correr!          | —                | Start                    |
+| Frenar todos      | STOP / ⏸            | Esc              | Select / Back            |
 
 ### Mandos USB y Bluetooth
 
 Cualquier mando que el navegador reconozca (Xbox, PlayStation, 8BitDo…) funciona por cable o por
 Bluetooth. El navegador solo lo muestra después de **pulsar un botón** del mando. Se pueden usar varios a la vez:
-en la pantalla **Carrera** elige "Mando 1", "Mando 2"… como piloto de cada coche. Un mando sin coche asignado
+en el **Garaje** elige "Mando 1", "Mando 2"… como piloto de cada coche. Un mando sin coche asignado
 conduce el coche que tengas seleccionado.
 
-Mientras un mando conduce el coche que estás viendo, la pantalla oculta los controles táctiles y muestra en su
-lugar el velocímetro, el blindaje, la energía y el mapa de la pista. **Mostrar controles** los recupera.
+Mientras un mando conduce tu coche, la pantalla de carrera oculta los controles táctiles y muestra en su
+lugar el circuito en grande con todos los coches.
 
 ### Dos o más jugadores
 
 Hay dos formas de jugar varios a la vez:
 
-- **Un móvil y varios mandos.** Un solo móvil conecta todos los coches. En **🏁 Carrera** asigna "Mando 1",
+- **Un móvil y varios mandos.** Un solo móvil conecta todos los coches. En el **Garaje** asigna "Mando 1",
   "Mando 2"… a cada coche (también puedes poner coches con IA).
 - **Varios móviles.** Cada jugador conduce su coche desde su propio móvil:
-  1. En el móvil anfitrión pulsa **📱** (arriba) → aparece un **código QR** y un código de 5 letras.
+  1. En el móvil anfitrión pulsa **Multijugador** (o **📱** arriba) → aparece un **código QR** y un código de 5 letras.
   2. En el otro móvil, escanea el QR con la cámara (o abre la app, pulsa 📱 y escribe el código).
   3. Ese móvil conecta **su** coche por Bluetooth y ya lo conduce, con pantalla, teclado o mando.
-  4. El anfitrión maneja la carrera desde **🏁 Carrera**: semáforo, vueltas, armas e IA valen para todos,
-     y cada móvil ve su cockpit, el semáforo, su posición, la clasificación y el mapa, con sonidos.
+  4. El anfitrión empieza la carrera desde **Preparar carrera**: semáforo, vueltas, armas e IA valen para todos,
+     y cada móvil ve la pantalla de carrera de su coche: semáforo, pedales, armas, posición y minimapa, con sonidos.
 
   La conexión es directa entre móviles (WebRTC). Solo para encontrarse usan el servidor público y gratuito de
   [PeerJS](https://peerjs.com), así que hace falta internet (wifi o datos) en ambos. Cada coche solo puede estar
@@ -79,15 +79,15 @@ Cada arma tiene su efecto de sonido.
 
 ### Carrera
 
-La pestaña **🏁 Carrera** dibuja la pista escaneada y muestra los coches moviéndose sobre ella en directo.
+**Preparar carrera** dibuja la pista escaneada; en carrera, el minimapa muestra los coches moviéndose en directo.
 Hacia dónde gira cada curva se sabe por la distancia que recorre cada rueda; si falta ese dato, la curva se
 dibuja hacia la izquierda.
 
 1. Elige el número de vueltas, si hay armas o no, y el piloto de cada coche: tú en pantalla, un mando o la IA.
-2. **Empezar carrera**: semáforo de 5 luces rojas con pitidos; al apagarse, ¡salida! Antes los coches no se mueven,
-   aunque ya tengas el acelerador puesto.
-3. La app cuenta las vueltas al cruzar la meta, muestra la clasificación en directo y la mejor vuelta, y anuncia
-   al ganador. Cada coche frena al terminar.
+2. **¡A correr!**: los coches van a la línea de salida y luego el semáforo de 5 luces rojas con pitidos; al apagarse,
+   ¡YA! Antes los coches no se mueven, aunque ya tengas el gas puesto.
+3. La app cuenta las vueltas al cruzar la meta, muestra tu posición en directo y, al final, el podio con premios
+   (ganador, más rápido, más tiempo en cabeza, vuelta rápida…). Cada coche frena al terminar.
 
 | Nivel de IA | Qué hace                                                                                       |
 |-------------|------------------------------------------------------------------------------------------------|
@@ -145,9 +145,15 @@ src/
   ai.ts         Pilotos de IA (3 niveles, con empujones)
   sound.ts      Efectos de sonido sintetizados con Web Audio
   gamepad.ts    Varios mandos USB/Bluetooth a la vez
-  raceview.ts   Pantalla de carrera
+  campaign.ts   Los 10 niveles de la campaña y su seguimiento
+  stats.ts      Estadísticas por coche y premios de fin de carrera
+  tilt.ts       Volante con el giroscopio
+  avatars.ts    Imagen de cada coche
+  screens.ts    Menú principal, garaje, preparar carrera y campaña
+  hud.ts        Pantalla de carrera a pantalla completa (anfitrión e invitado)
   mapview.ts    Mapa de la pista con los coches en directo
-  cockpit.ts    Pantalla de conducción (la misma en el anfitrión y en el invitado)
+  cockpit.ts    Pantalla de prueba libre (la misma en el anfitrión y en el invitado)
+  game.css      Estética de juego de carreras
   net.ts        Conexión entre móviles (PeerJS/WebRTC)
   remote.ts     Multijugador: puente Bluetooth del invitado y estado que le envía el anfitrión
   host.ts       App del móvil anfitrión (TypeScript sin framework)

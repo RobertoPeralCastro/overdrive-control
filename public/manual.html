@@ -127,6 +127,9 @@
         border: 1px solid var(--line);
         box-shadow: 0 10px 30px rgb(0 0 0 / 0.45);
       }
+      .shot figure.wide {
+        flex: 1 1 100%;
+      }
       .shot figcaption {
         font-size: 0.8rem;
         color: var(--muted);
@@ -226,13 +229,13 @@
       <section id="bluetooth">
         <h2>Permisos de Bluetooth</h2>
         <div class="shot">
-          <figure><img src="manual/01-inicio.png" alt="Pantalla de inicio con el botón Conectar coche" width="391" height="849" loading="lazy" /><figcaption>Pantalla de inicio</figcaption></figure>
+          <figure><img src="manual/01-inicio.png" alt="Menú principal con el logo, tu coche, el botón Carrera rápida y las opciones Campaña, Multijugador y Garaje" width="360" height="781" loading="lazy" /><figcaption>Menú principal</figcaption></figure>
           <div class="text">
             <ol class="steps">
               <li>Activa el <strong>Bluetooth</strong> del móvil u ordenador.</li>
               <li>Enciende el coche y ponlo sobre la pista. Si no se despierta, déjalo un momento en el cargador.</li>
-              <li>Pulsa <strong>Conectar coche</strong>. El navegador abre una lista con los coches cercanos (aparecen como <em>Drive</em> o con su nombre).</li>
-              <li>Elige el coche y pulsa <strong>Vincular</strong> / <strong>Conectar</strong>. Repite con <strong>+</strong> (arriba) para añadir más coches.</li>
+              <li>En el menú principal, toca el hueco del coche (o entra en <strong>Garaje</strong>) y pulsa <strong>Conectar coche</strong>. El navegador abre una lista con los coches cercanos (aparecen como <em>Drive</em> o con su nombre).</li>
+              <li>Elige el coche y pulsa <strong>Vincular</strong> / <strong>Conectar</strong>. Repite desde el <strong>Garaje</strong> para añadir más coches.</li>
             </ol>
             <p>La app solo pide acceso al coche que eliges en esa lista; no ve el resto de tus dispositivos.</p>
           </div>
@@ -266,8 +269,13 @@
 
       <section id="jugar">
         <h2>Cómo se juega: 3 pasos</h2>
+        <p>Desde el <strong>menú principal</strong>: <strong>Carrera rápida</strong> te lleva a preparar la carrera, <strong>Campaña</strong> a los niveles, <strong>Multijugador</strong> a invitar a otro móvil y <strong>Garaje</strong> a tus coches. Arriba, 🏆 cuenta tus victorias y <strong>STOP</strong> frena todos los coches.</p>
+        <div class="shot">
+          <figure><img src="manual/02-garaje.png" alt="Garaje con la tarjeta de un coche: imagen, piloto, colores y botones Identificar, Conducir y Quitar" width="360" height="781" loading="lazy" /><figcaption>Garaje: desliza para ver cada coche</figcaption></figure>
+          <figure><img src="manual/03-preparar.png" alt="Preparar carrera: mapa de la pista escaneada, vueltas, armas, sonido y botón A correr" width="360" height="781" loading="lazy" /><figcaption>Preparar carrera</figcaption></figure>
+        </div>
         <ol class="steps">
-          <li><strong>1 · Coches.</strong> Conecta cada coche. En su tarjeta puedes:
+          <li><strong>1 · Garaje.</strong> Conecta cada coche. Desliza las tarjetas para pasar de uno a otro. En cada tarjeta puedes:
             <ul>
               <li>tocar la <strong>imagen</strong> para ponerle una foto tuya (de la galería o de la cámara);</li>
               <li>elegir su <strong>color</strong> de luces;</li>
@@ -276,16 +284,16 @@
               <li><strong>Conducir</strong> para probarlo libremente fuera de carrera.</li>
             </ul>
           </li>
-          <li><strong>2 · Pista.</strong> Escanea la pista con el coche que quieras, elige vueltas, armas y sonido, y pulsa <strong>Carrera libre</strong> o entra en la <strong>Campaña</strong>.</li>
-          <li><strong>3 · Carrera.</strong> Primero los coches van solos a la <strong>línea de salida</strong>, cada uno en su carril, y se paran. Después empieza el semáforo. Durante la carrera solo ves los controles de tu coche (o, si juegas con mando, el circuito con todos los coches). <strong>Clasificación</strong> abre la tabla completa.</li>
+          <li><strong>2 · Preparar carrera.</strong> Escanea la pista con el coche que quieras, elige vueltas, armas y sonido, y pulsa <strong>¡A correr!</strong> o entra en la <strong>Campaña</strong>.</li>
+          <li><strong>3 · Carrera.</strong> Primero los coches van solos a la <strong>línea de salida</strong>, cada uno en su carril, y se paran. Después empieza el semáforo. Durante la carrera la pantalla entera es tu coche: pedales, armas, velocidad y un minimapa (o, si juegas con mando, el circuito en grande). Toca el <strong>minimapa</strong> para ver la clasificación completa. Al final, el <strong>podio</strong> y los premios.</li>
         </ol>
       </section>
 
       <section id="volante">
         <h2>El móvil como volante</h2>
-        <p>En el móvil se juega en <strong>horizontal, como un volante</strong>: al pulsar <em>Carrera libre</em> o un nivel de campaña, la app se pone en pantalla completa y en horizontal (en iPhone gira tú el móvil). El <strong>freno</strong> queda bajo el pulgar izquierdo y el <strong>acelerador</strong> bajo el derecho.</p>
+        <p>En el móvil se juega en <strong>horizontal, como un volante</strong>: al pulsar <em>¡A correr!</em> o un nivel de campaña, la app se pone en pantalla completa y en horizontal (en iPhone gira tú el móvil). El <strong>freno</strong> queda bajo el pulgar izquierdo y el <strong>acelerador</strong> bajo el derecho.</p>
         <ul>
-          <li><strong>Inclina el móvil</strong> a la derecha o a la izquierda para cambiar de carril; si lo mantienes inclinado, sigue cambiando. Vuelve al centro para soltar.</li>
+          <li><strong>Inclina el móvil</strong> a la derecha o a la izquierda para cambiar de carril; si lo mantienes inclinado, sigue cambiando. Vuelve al centro para soltar. El volante dibujado junto a la velocidad gira contigo.</li>
           <li><strong>Centrar</strong> toma la posición actual como recta. <strong>Invertir</strong> por si en tu móvil el giro va al revés. <strong>Botones</strong> vuelve a las flechas de carril.</li>
           <li>La primera vez el navegador puede pedir permiso para usar el sensor de movimiento: acéptalo.</li>
         </ul>
@@ -293,7 +301,12 @@
 
       <section id="campana">
         <h2>Campaña</h2>
-        <p>Diez pruebas contra la IA que se desbloquean una tras otra (el progreso se guarda en el móvil). Tu coche es el que conduces tú; los demás coches conectados hacen de rivales, así que algunos niveles necesitan 2 o 3 coches.</p>
+        <div class="shot">
+          <figure><img src="manual/08-campana.png" alt="Camino de la campaña con el nivel 1 abierto y el resto bloqueados" width="360" height="781" loading="lazy" /><figcaption>El camino de la campaña</figcaption></figure>
+          <div class="text">
+            <p>Diez pruebas contra la IA que se desbloquean una tras otra, como un camino (el progreso se guarda en el móvil). Tu coche es el que conduces tú; los demás coches conectados hacen de rivales, así que algunos niveles necesitan 2 o 3 coches.</p>
+          </div>
+        </div>
         <ol>
           <li>Primera carrera: gana a la IA fácil en 2 vueltas.</li>
           <li>Líder: ve 20 s en cabeza.</li>
@@ -306,33 +319,34 @@
           <li>Dos contra uno: termina por delante de al menos una de dos IA.</li>
           <li>Campeón: gana a dos IA difíciles.</li>
         </ol>
-        <p>Durante la prueba, arriba ves el objetivo y cómo vas («misilazos 1/3»). Al terminar: <em>¡Nivel superado!</em> o <em>Reintentar</em>.</p>
+        <p>Durante la prueba, arriba ves el objetivo y cómo vas («misilazos 1/3»). Al terminar: <em>¡Nivel superado!</em> con el botón al nivel siguiente, o <em>Reintentar</em>.</p>
       </section>
 
       <section id="estadisticas">
         <h2>Estadísticas</h2>
-        <p>Al acabar cada carrera se reparten premios: 🏆 ganador, ⚡ más rápido, 👑 más tiempo en cabeza, ⏱️ vuelta rápida, 💥 más derribos y 🎯 mejor puntería. Cada coche guarda en el móvil su historial: carreras, victorias, podios, velocidad máxima, mejor vuelta, tiempo en cabeza y derribos. Lo ves en su tarjeta, en la pantalla Coches.</p>
+        <p>Al acabar cada carrera se reparten premios: 🏆 ganador, ⚡ más rápido, 👑 más tiempo en cabeza, ⏱️ vuelta rápida, 💥 más derribos y 🎯 mejor puntería. Cada coche guarda en el móvil su historial: carreras, victorias, podios, velocidad máxima, mejor vuelta, tiempo en cabeza y derribos. Lo ves en su tarjeta del <strong>Garaje</strong>, y el total de victorias en 🏆 arriba.</p>
       </section>
 
       <section id="conducir">
         <h2>Conducir</h2>
         <div class="shot">
-          <figure><img src="manual/02-cockpit.png" alt="Pantalla de conducción con velocímetro, carriles, acelerador, armas y freno" width="391" height="849" loading="lazy" /><figcaption>Cockpit de un coche</figcaption></figure>
-          <div class="text">
-            <ul>
-              <li><strong>Acelerador</strong> (barra vertical): arrástralo; la velocidad se queda donde lo dejes, como un control de crucero. <strong>▲ ▼</strong> la cambian por pasos.</li>
-              <li><strong>Carril ‹ ›</strong>: cambia de carril. <strong>Media vuelta</strong> le da la vuelta al coche. Ambos necesitan que el coche esté en marcha (si está parado, la app lo arranca suave).</li>
-              <li><strong>FRENO</strong> para el coche; <strong>STOP</strong> (arriba) frena todos.</li>
-              <li>El velocímetro muestra la velocidad real que mide el coche y la objetivo. Debajo: batería, blindaje, energía y tu objetivo.</li>
-              <li>Los colores de abajo cambian la luz del coche. Cada coche tiene su pestaña arriba.</li>
-            </ul>
-          </div>
+          <figure class="wide"><img src="manual/05-carrera.png" alt="Pantalla de carrera en horizontal: posición, vuelta, blindaje y energía arriba a la izquierda, minimapa arriba a la derecha, freno a la izquierda, gas a la derecha, armas junto al gas y velocidad con volante en el centro" width="862" height="398" loading="lazy" /><figcaption>En carrera: el móvil es el mando</figcaption></figure>
         </div>
+        <ul>
+          <li><strong>GAS</strong> (pedal derecho): arrástralo hacia arriba; la velocidad se queda donde lo dejes, como un control de crucero.</li>
+          <li><strong>FRENO</strong> (pedal izquierdo): para el coche.</li>
+          <li><strong>Armas</strong> (botones redondos junto al gas): láser, misil, pulso y escudo. Un anillo muestra la recarga; se apagan si no tienes energía.</li>
+          <li><strong>Centro</strong>: velocidad en km/h (a escala 1:50) con el volante, y las flechas <strong>◀ ▶</strong> de carril si no usas el giroscopio.</li>
+          <li><strong>Arriba a la izquierda</strong>: tu posición, la vuelta, el <strong>blindaje</strong> (barra verde) y la <strong>energía</strong> (barra naranja), y el rival al que apuntas 🎯.</li>
+          <li><strong>Arriba a la derecha</strong>: el minimapa con todos los coches (tócalo para ver la clasificación) y <strong>⏸</strong> para parar la carrera.</li>
+          <li>Si te dan, la pantalla se tiñe de rojo y el móvil vibra.</li>
+        </ul>
+        <p>Fuera de carrera, en el Garaje, <strong>Conducir</strong> abre el modo de prueba libre, con acelerador, carriles, media vuelta, armas y colores de luz.</p>
       </section>
 
       <section id="pista">
         <h2>Escanear la pista</h2>
-        <p>Para saber quién va delante, contar vueltas y dibujar el mapa, la app necesita conocer la pista. Pulsa <strong>Escanear pista</strong> (en el cockpit o en 🏁 Carrera): el coche da una vuelta despacio y frena en la línea de salida. Verás el mensaje <em>Pista escaneada: 13 piezas…</em>.</p>
+        <p>Para saber quién va delante, contar vueltas y dibujar el mapa, la app necesita conocer la pista. Pulsa <strong>Escanear pista</strong> en <em>Preparar carrera</em>: el coche da una vuelta despacio y frena en la línea de salida. Verás el mensaje <em>Pista escaneada: 13 piezas…</em>.</p>
         <p>Si no la escaneas, la app la aprende sola mientras conduces (en pistas sin pieza de salida tarda dos vueltas). Si cambias la pista, pulsa <strong>Volver a escanear</strong>.</p>
       </section>
 
@@ -355,17 +369,15 @@
       <section id="carrera">
         <h2>Carrera e IA</h2>
         <div class="shot">
-          <figure><img src="manual/03-semaforo.png" alt="Semáforo de salida con cuatro luces rojas encendidas" width="391" height="849" loading="lazy" /><figcaption>Semáforo de salida</figcaption></figure>
-          <figure><img src="manual/04-carrera.png" alt="Mapa de la pista con los coches y la clasificación en directo" width="391" height="849" loading="lazy" /><figcaption>Mapa y clasificación en directo</figcaption></figure>
-          <figure><img src="manual/05-ganador.png" alt="Fin de carrera con el ganador y el podio" width="391" height="849" loading="lazy" /><figcaption>Ganador y podio</figcaption></figure>
+          <figure class="wide"><img src="manual/04-semaforo.png" alt="Semáforo de salida con tres de las cinco luces rojas encendidas y el texto PREPARADOS" width="862" height="398" loading="lazy" /><figcaption>Semáforo de salida</figcaption></figure>
+          <figure class="wide"><img src="manual/07-podio.png" alt="Resultados: podio con los tres coches y premios como ganador, más rápido, más tiempo en cabeza y vuelta rápida" width="862" height="398" loading="lazy" /><figcaption>Podio y premios</figcaption></figure>
         </div>
         <ol class="steps">
-          <li>Abre la pestaña <strong>🏁 Carrera</strong>. Verás el mapa de la pista con los coches moviéndose en directo.</li>
-          <li>Elige el número de <strong>vueltas</strong>, si hay <strong>armas</strong> y el <strong>sonido</strong>.</li>
-          <li>Elige el <strong>piloto</strong> de cada coche: tú en pantalla, un mando, otro móvil o la IA.</li>
-          <li>Pulsa <strong>Empezar carrera</strong>: la pantalla pasa a los <strong>controles de tu coche</strong>, con el semáforo, tu vuelta y tu posición arriba (<strong>Clasificación</strong> abre la tabla completa). 5 luces rojas con pitidos y, al apagarse, ¡salida! Antes los coches no se mueven aunque aceleres.</li>
-          <li>Durante la carrera, los coches que conduce la IA aparecen con 🤖 y no se pueden abrir.</li>
-          <li>La app cuenta vueltas, muestra posiciones y mejor vuelta, avisa de la última vuelta y anuncia al ganador.</li>
+          <li>En el <strong>Garaje</strong>, elige el <strong>piloto</strong> de cada coche: tú en pantalla, un mando, otro móvil o la IA.</li>
+          <li>En <strong>Preparar carrera</strong>, elige el número de <strong>vueltas</strong>, si hay <strong>armas</strong> y el <strong>sonido</strong>.</li>
+          <li>Pulsa <strong>¡A correr!</strong>: los coches van a la salida (<em>A LA SALIDA</em>) y la pantalla pasa a los <strong>controles de tu coche</strong>. 5 luces rojas con pitidos y, al apagarse, <strong>¡YA!</strong> Antes los coches no se mueven aunque aceleres.</li>
+          <li>Los coches que conduce la IA no se pueden controlar desde la pantalla.</li>
+          <li>La app cuenta vueltas, muestra tu posición y avisa de la última vuelta. Al terminar sale el <strong>podio</strong> con los premios, y puedes pedir la <strong>Revancha</strong> o volver al <strong>Menú</strong>.</li>
         </ol>
         <div class="table-wrap">
           <table>
@@ -383,7 +395,7 @@
       <section id="mandos">
         <h2>Mandos USB y Bluetooth</h2>
         <div class="shot">
-          <figure><img src="manual/06-mando.png" alt="Cockpit en modo mando con el mapa en lugar de los controles táctiles" width="391" height="849" loading="lazy" /><figcaption>Con mando: telemetría y mapa</figcaption></figure>
+          <figure class="wide"><img src="manual/06-mando.png" alt="Carrera con mando: sin controles táctiles, el circuito en grande con los coches, la posición arriba y la velocidad abajo" width="862" height="398" loading="lazy" /><figcaption>Con mando: el circuito en grande</figcaption></figure>
           <div class="text">
             <h3>Conectar el mando</h3>
             <ul>
@@ -391,7 +403,7 @@
               <li><strong>USB</strong>: enchúfalo. En Android hace falta un adaptador USB-C/OTG.</li>
               <li>Con la app abierta, <strong>pulsa cualquier botón</strong> del mando: el navegador solo lo muestra a la web después de eso. Aparecerá <em>Mando 1 conectado</em>.</li>
             </ul>
-            <p>Mientras un mando conduce el coche que ves, la pantalla quita los controles táctiles y muestra el mapa. <strong>Mostrar controles</strong> los recupera.</p>
+            <p>Mientras un mando conduce tu coche, la pantalla quita los controles táctiles y muestra el circuito en grande con todos los coches.</p>
           </div>
         </div>
         <div class="table-wrap">
@@ -411,21 +423,20 @@
           </table>
         </div>
         <h3>Un móvil y varios mandos</h3>
-        <p>Conecta todos los coches en un solo móvil y todos los mandos. En <strong>🏁 Carrera</strong> elige <em>Mando 1</em>, <em>Mando 2</em>… como piloto de cada coche. Cada mando conduce solo el suyo. Un mando sin coche asignado conduce el coche que tengas abierto en pantalla.</p>
+        <p>Conecta todos los coches en un solo móvil y todos los mandos. En el <strong>Garaje</strong> elige <em>Mando 1</em>, <em>Mando 2</em>… como piloto de cada coche. Cada mando conduce solo el suyo. Un mando sin coche asignado conduce el coche que tengas abierto en pantalla.</p>
       </section>
 
       <section id="multijugador">
         <h2>Jugar con varios móviles</h2>
         <div class="shot">
-          <figure><img src="manual/07-invitar.png" alt="Ventana para invitar a otro móvil con un código QR" width="391" height="849" loading="lazy" /><figcaption>Invitar: QR y código</figcaption></figure>
-          <figure><img src="manual/08-invitado.png" alt="Pantalla del móvil invitado con su posición y su cockpit" width="391" height="849" loading="lazy" /><figcaption>El móvil invitado</figcaption></figure>
-          <figure><img src="manual/09-carrera-multijugador.png" alt="Carrera en el anfitrión con un coche que se conduce desde otro móvil" width="391" height="849" loading="lazy" /><figcaption>El anfitrión ve a todos</figcaption></figure>
+          <figure><img src="manual/09-invitar.png" alt="Ventana para invitar a otro móvil con un código QR y un código de 5 letras" width="360" height="781" loading="lazy" /><figcaption>Invitar: QR y código</figcaption></figure>
+          <figure class="wide"><img src="manual/10-espectador.png" alt="Vista de espectador: el circuito con los coches en directo y el botón Parar carrera" width="862" height="398" loading="lazy" /><figcaption>Si no conduces (o ya has llegado): el circuito en directo</figcaption></figure>
         </div>
         <ol class="steps">
-          <li>En el móvil <strong>anfitrión</strong> pulsa <strong>📱</strong> (arriba). Aparecen un <strong>código QR</strong> y un código de 5 letras.</li>
+          <li>En el móvil <strong>anfitrión</strong> pulsa <strong>Multijugador</strong> en el menú (o <strong>📱</strong> arriba). Aparecen un <strong>código QR</strong> y un código de 5 letras.</li>
           <li>En el otro móvil, <strong>escanea el QR con la cámara</strong>, o abre la app, pulsa 📱 y escribe el código en <em>¿Te han invitado a ti?</em>.</li>
           <li>Ese móvil conecta <strong>su propio coche</strong> por Bluetooth y lo conduce con la pantalla o con su mando.</li>
-          <li>El anfitrión maneja la carrera desde <strong>🏁 Carrera</strong>. Cada móvil ve su cockpit, el semáforo, su vuelta y posición, la clasificación y el mapa, con sonidos y vibración.</li>
+          <li>El anfitrión empieza la carrera desde <strong>Preparar carrera</strong>. Cada móvil ve la pantalla de carrera de su coche: semáforo, pedales, armas, su vuelta y posición y el minimapa, con sonidos y vibración.</li>
         </ol>
         <p>Los dos móviles necesitan internet (wifi o datos) para encontrarse; después se hablan directamente. Cada coche solo puede estar conectado a un móvil a la vez.</p>
       </section>
@@ -462,7 +473,7 @@
         <h3>No cuenta las vueltas o no hay objetivo</h3>
         <p>Escanea la pista (o vuelve a escanearla si la has cambiado).</p>
         <h3>El mando no hace nada</h3>
-        <p>Pulsa un botón del mando con la app abierta. En 🏁 Carrera, comprueba qué coche tiene asignado ese mando.</p>
+        <p>Pulsa un botón del mando con la app abierta. En el Garaje, comprueba qué coche tiene asignado ese mando.</p>
         <h3>El otro móvil no se une</h3>
         <p>Comprueba que los dos tienen internet y que el código es el que muestra el anfitrión ahora (cada vez que se abre la app cambia). Algunas wifis de empresa bloquean las conexiones directas entre dispositivos; prueba con datos móviles.</p>
         <h3>Sigo viendo la versión antigua</h3>
