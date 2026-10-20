@@ -8,6 +8,7 @@ import { Gamepads } from './gamepad';
 import { fieldCars, fieldSource } from './mapview';
 import { joinUrl, normalizeCode, openRoom, type Channel, type Room } from './net';
 import { Race, type Entry } from './race';
+import { RaceStrip } from './racestrip';
 import { RaceView } from './raceview';
 import { GuestLink, type Action, type GuestEvent, type RaceSummary, type RemoteTransport, type Snapshot } from './remote';
 import { errText, keepAwake, showToast, toastElement } from './shell';
@@ -37,7 +38,7 @@ let raceScreen = false;
 
 const app = document.getElementById('app')!;
 const garage = h('nav', { class: 'garage', 'aria-label': 'Coches conectados' });
-const stage = h('main', { class: 'stage' });
+const stage = h('main', { class: 'stage stage-stack' });
 const invite = h('dialog', { class: 'sheet', 'aria-label': 'Jugar con otro móvil' });
 
 app.append(
@@ -118,9 +119,17 @@ function stopAll(): void {
 }
 
 function select(car: Car | undefined): void {
+  // The AI drives its cars during a race: there is nothing to steer.
+  if (car && race.isAi(car)) return showToast(`${car.state.name} lo conduce la IA durante la carrera`);
   selected = car;
   raceScreen = false;
   render();
+}
+
+/** The racing car this phone drives (on screen or with one of its pads), if any. */
+function myRacer(): Car | undefined {
+  const mine = (kinds: string[]) => cars.find((c) => race.entries.has(c) && kinds.includes(race.driverOf(c).kind));
+  return mine(['screen']) ?? mine(['pad']);
 }
 
 function showRace(): void {
@@ -180,7 +189,10 @@ function startRace(): void {
   const why = race.blocker(cars);
   if (why) return showToast(why);
   race.start(cars);
-  showRace();
+  // Straight to the controls of the car driven from this phone; the race screen otherwise.
+  const mine = myRacer();
+  if (mine) select(mine);
+  else showRace();
 }
 
 const WEAPON_SOUNDS: Record<WeaponId, SoundName> = { blaster: 'laser', missile: 'missile', pulse: 'pulse', shield: 'shield' };
@@ -190,6 +202,7 @@ field.addEventListener('scanfail', () => announce('No se pudo escanear la pista.
 battle.addEventListener('change', () => {
   cockpit?.updateBattle();
   raceView?.update();
+  updateStrip();
 });
 battle.addEventListener('fire', (e) => {
   const { shooter, weapon, hits } = (e as CustomEvent<FireDetail>).detail;
@@ -212,6 +225,8 @@ battle.start();
 race.addEventListener('change', () => {
   raceView?.update();
   cockpit?.updateBattle();
+  updateStrip();
+  renderGarage();
 });
 race.addEventListener('light', () => sfx('light'));
 race.addEventListener('go', () => {
@@ -500,6 +515,12 @@ const pads = new Gamepads({
 let cockpit: Cockpit | undefined;
 let cockpitCar: Car | undefined;
 let raceView: RaceView | undefined;
+/** Lights, lap and position above the cockpit while racing. */
+const strip = new RaceStrip(showRace);
+
+function updateStrip(): void {
+  strip.update(cockpitCar && race.entries.has(cockpitCar) ? raceSummary(cockpitCar) : undefined);
+}
 
 function dropCockpit(): void {
   cockpit?.destroy();
@@ -525,9 +546,10 @@ function render(): void {
     dropCockpit();
     cockpit = new Cockpit(hostModel(selected));
     cockpitCar = selected;
-    stage.replaceChildren(cockpit.el);
+    stage.replaceChildren(strip.el, cockpit.el);
   }
   cockpit.update();
+  updateStrip();
 }
 
 function onCarChange(car: Car): void {
@@ -542,20 +564,23 @@ function renderGarage(): void {
     h('button', { class: `chip chip-race ${raceScreen ? 'is-active' : ''}`, onclick: showRace, title: 'Pista, carrera e IA (tecla 0)' }, '🏁 Carrera'),
     ...cars.map((car, i) => {
       const s = car.state;
-      return h(
+      const ai = race.isAi(car);
+      const chip = h(
         'button',
         {
           class: `chip ${car === selected && !raceScreen ? 'is-active' : ''} is-${s.status}`,
           style: `--car:${s.color}`,
           onclick: () => select(car),
-          title: `${s.name}${isGuestCar(car) ? ' (desde otro móvil)' : ''} (tecla ${i + 1})`,
+          title: ai ? `${s.name} lo conduce la IA` : `${s.name}${isGuestCar(car) ? ' (desde otro móvil)' : ''} (tecla ${i + 1})`,
         },
         [
           h('span', { class: 'chip-dot' }),
-          h('span', { class: 'chip-name' }, `${isGuestCar(car) ? '📱 ' : ''}${s.name}`),
+          h('span', { class: 'chip-name' }, `${ai ? '🤖 ' : isGuestCar(car) ? '📱 ' : ''}${s.name}`),
           s.battery !== undefined ? h('span', { class: 'chip-batt' }, `${s.battery}%`) : null,
         ],
       );
+      chip.disabled = ai;
+      return chip;
     }),
   );
 }

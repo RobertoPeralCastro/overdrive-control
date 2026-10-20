@@ -3,7 +3,7 @@ import { h, icon } from './dom';
 import { Gamepads } from './gamepad';
 import { MapView } from './mapview';
 import { joinRoom, normalizeCode } from './net';
-import { LIGHTS } from './race';
+import { RaceStrip } from './racestrip';
 import { GuestSession, guestModel, type GuestEvent, type RaceSummary } from './remote';
 import { errText, keepAwake, showToast, toastElement } from './shell';
 import { SimTransport } from './sim';
@@ -27,8 +27,8 @@ export function startGuest(rawCode: string, demo: boolean): void {
   let standingsOpen = false;
 
   const app = document.getElementById('app')!;
-  const main = h('main', { class: 'stage stage-guest' });
-  const strip = h('div', { class: 'guest-race' });
+  const main = h('main', { class: 'stage stage-stack' });
+  const strip = new RaceStrip(() => openSheet(), 'Esperando a que el anfitrión empiece la carrera');
   const sheet = h('dialog', { class: 'sheet', 'aria-label': 'Clasificación' });
   const map = new MapView(() => (cockpit ? cockpit.model.map() : { turns: [], cars: () => [] }));
 
@@ -169,27 +169,14 @@ export function startGuest(rawCode: string, demo: boolean): void {
       );
     } else if (stage === 'driving' && session && !cockpit) {
       cockpit = new Cockpit(guestModel(session, { padName, reconnect: () => void reconnectCar(), leave, toast: showToast }));
-      main.replaceChildren(strip, cockpit.el);
+      main.replaceChildren(strip.el, cockpit.el);
       cockpit.update();
       renderStrip();
     }
   }
 
-  /** Race status above the cockpit: lights, lap and position. */
   function renderStrip(): void {
-    const r = session?.snap?.race;
-    if (!r) return;
-    const me = r.standings.findIndex((s) => s.me);
-    const mine = r.standings[me];
-    let text: string;
-    if (r.phase === 'setup') text = 'Esperando a que el anfitrión empiece la carrera';
-    else if (r.phase === 'countdown') text = 'Preparados…';
-    else if (mine?.place) text = `${mine.place === 1 ? '🏆 ¡Has ganado!' : `Llegas ${mine.place}.º`}`;
-    else if (r.phase === 'running') text = `Vuelta ${Math.min((mine?.laps ?? 0) + 1, r.totalLaps)}/${r.totalLaps} · ${me + 1}.º de ${r.standings.length}`;
-    else text = r.winner ? `🏆 Gana ${r.winner}` : 'Carrera terminada';
-    const lights = h('div', { class: 'mini-lights', 'aria-hidden': 'true' }, Array.from({ length: LIGHTS }, (_, i) => h('span', { class: `bulb ${i < r.lights ? 'is-lit' : ''}` })));
-    lights.hidden = r.phase !== 'countdown';
-    strip.replaceChildren(lights, h('span', { class: 'guest-race-text' }, text), h('button', { class: 'btn btn-ghost btn-sm', onclick: openSheet }, 'Clasificación'));
+    strip.update(session?.snap?.race);
   }
 
   function openSheet(): void {

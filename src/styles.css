@@ -162,6 +162,11 @@ button {
   background: var(--panel);
   cursor: pointer;
 }
+/* Cars the AI drives during a race can't be opened */
+.chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .chip.is-active {
   border-color: var(--car);
   background: color-mix(in srgb, var(--car) 18%, var(--panel));
@@ -615,7 +620,7 @@ button {
   color: var(--muted);
 }
 
-.stage-guest {
+.stage-stack {
   flex-direction: column;
   gap: 8px;
 }
