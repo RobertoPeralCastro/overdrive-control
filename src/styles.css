@@ -1,0 +1,646 @@
+:root {
+  --bg: #0b0d12;
+  --panel: #141821;
+  --panel-2: #1b2130;
+  --line: #262d3d;
+  --text: #eef1f7;
+  --muted: #8a93a6;
+  --danger: #ff3b30;
+  --ok: #30d158;
+  --warn: #ffd60a;
+  --car: #0a84ff;
+  --radius: 18px;
+  color-scheme: dark;
+  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+#app {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+.icon {
+  width: 1.25em;
+  height: 1.25em;
+  flex: none;
+}
+
+/* ---- Buttons ---- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  font-weight: 600;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  user-select: none;
+}
+.btn:hover {
+  border-color: #3a4357;
+}
+.btn:focus-visible,
+.btn-pad:focus-visible,
+.throttle:focus-visible,
+.chip:focus-visible {
+  outline: 2px solid var(--car);
+  outline-offset: 2px;
+}
+.btn-ghost {
+  background: transparent;
+}
+.btn-primary {
+  background: var(--car);
+  border-color: transparent;
+  color: #fff;
+}
+.btn-lg {
+  min-height: 52px;
+  padding: 0 24px;
+  font-size: 1.05rem;
+}
+.btn-sm {
+  min-height: 34px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.btn-stop {
+  background: var(--danger);
+  border-color: transparent;
+  color: #fff;
+  letter-spacing: 0.08em;
+}
+
+/* ---- Top bar & garage ---- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.brand em {
+  font-style: normal;
+  font-weight: 400;
+  color: var(--muted);
+  text-transform: lowercase;
+}
+.brand-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #0a84ff, #bf5af2);
+  clip-path: polygon(0 100%, 40% 0, 100% 0, 60% 100%);
+}
+.top-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.garage {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.garage[hidden] {
+  display: none;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  min-height: 36px;
+  padding: 0 14px 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  cursor: pointer;
+}
+.chip.is-active {
+  border-color: var(--car);
+  background: color-mix(in srgb, var(--car) 18%, var(--panel));
+}
+.chip-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--car);
+  box-shadow: 0 0 8px var(--car);
+}
+.chip.is-disconnected .chip-dot,
+.chip.is-reconnecting .chip-dot {
+  background: var(--muted);
+  box-shadow: none;
+}
+.chip-batt {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  padding: 0 16px 16px;
+}
+
+/* ---- Empty state ---- */
+
+.empty {
+  margin: auto;
+  max-width: 440px;
+  text-align: center;
+}
+.empty h1 {
+  margin: 24px 0 8px;
+  font-size: 1.6rem;
+}
+.empty p {
+  margin: 0 0 24px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.empty p.warn {
+  color: var(--text);
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.empty-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.empty-track {
+  position: relative;
+  width: 200px;
+  height: 110px;
+  margin: 0 auto;
+  border: 14px solid var(--panel-2);
+  border-radius: 60px;
+}
+.empty-car {
+  position: absolute;
+  width: 18px;
+  height: 10px;
+  border-radius: 4px;
+  background: var(--car);
+  box-shadow: 0 0 12px var(--car);
+  offset-path: inset(-12px round 66px);
+  animation: lap 3s linear infinite;
+}
+@keyframes lap {
+  to {
+    offset-distance: 100%;
+  }
+}
+
+/* ---- Cockpit ---- */
+
+.cockpit {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 108px;
+  grid-template-rows: minmax(0, 1fr) auto auto auto;
+  grid-template-areas:
+    'dash dash'
+    'steer pedals'
+    'brake brake'
+    'footer footer';
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.dash {
+  grid-area: dash;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 0;
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--car) 14%, var(--panel)), var(--panel) 70%);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+.dash {
+  overflow: hidden;
+}
+.gauge {
+  position: relative;
+  width: min(100%, 300px);
+  min-height: 60px;
+  flex: 1;
+  max-height: 260px;
+  display: flex;
+  justify-content: center;
+}
+.gauge-svg {
+  height: 100%;
+  max-width: 100%;
+}
+.gauge-track,
+.gauge-value {
+  fill: none;
+  stroke-width: 14;
+  stroke-linecap: round;
+}
+.gauge-track {
+  stroke: var(--panel-2);
+}
+.gauge-value {
+  stroke: var(--car);
+  filter: drop-shadow(0 0 6px var(--car));
+  transition: stroke-dashoffset 0.25s ease-out;
+}
+.gauge-tick {
+  stroke: var(--line);
+  stroke-width: 2;
+}
+.gauge-target {
+  stroke: var(--text);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: transform 0.15s;
+}
+.gauge-readout {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 8%;
+}
+.speed-num {
+  font-size: clamp(2.2rem, 9vmin, 3.6rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.speed-unit {
+  color: var(--muted);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+}
+.speed-target {
+  margin-top: 6px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.telemetry {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 18px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.telemetry-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.telemetry-item.is-low {
+  color: var(--danger);
+}
+.led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+}
+.led.is-connecting,
+.led.is-reconnecting {
+  background: var(--warn);
+}
+.led.is-disconnected {
+  background: var(--danger);
+}
+
+/* Big touch pads */
+.btn-pad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+  transition: transform 0.06s, background 0.1s;
+}
+.btn-pad:active {
+  transform: scale(0.96);
+  background: var(--panel-2);
+}
+.btn-pad .icon {
+  width: 34px;
+  height: 34px;
+}
+.btn-pad span {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.steer {
+  grid-area: steer;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr auto;
+  gap: 12px;
+}
+.lane {
+  min-height: 96px;
+}
+.lane:active {
+  background: color-mix(in srgb, var(--car) 30%, var(--panel));
+}
+.uturn {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  gap: 10px;
+  min-height: 52px;
+}
+.uturn .icon {
+  width: 22px;
+  height: 22px;
+}
+
+.pedals {
+  grid-area: pedals;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.throttle {
+  position: relative;
+  flex: 1;
+  min-height: 110px;
+  border-radius: var(--radius);
+  background: repeating-linear-gradient(to top, transparent 0 calc(10% - 1px), var(--line) calc(10% - 1px) 10%), var(--panel);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  cursor: ns-resize;
+  touch-action: none;
+}
+.throttle-fill {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 0;
+  background: linear-gradient(to top, color-mix(in srgb, var(--car) 60%, transparent), var(--car));
+  border-top: 3px solid #fff;
+  transition: height 0.12s;
+}
+.throttle.is-dragging .throttle-fill {
+  transition: none;
+}
+.throttle-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 0.7rem;
+  letter-spacing: 0.3em;
+  font-weight: 700;
+  color: rgb(255 255 255 / 0.5);
+  pointer-events: none;
+}
+.pedal-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.btn-pad.small {
+  min-height: 48px;
+}
+.btn-pad.small .icon {
+  width: 24px;
+  height: 24px;
+}
+
+.brake {
+  grid-area: brake;
+  min-height: 68px;
+  background: color-mix(in srgb, var(--danger) 85%, #000);
+  border-color: transparent;
+  color: #fff;
+  font-size: 1.2rem;
+  letter-spacing: 0.25em;
+}
+.brake:active {
+  background: var(--danger);
+}
+
+.car-footer {
+  grid-area: footer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.swatches {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: var(--c) content-box;
+  padding: 2px;
+  cursor: pointer;
+}
+.swatch[aria-checked='true'] {
+  border-color: var(--text);
+}
+
+/* Blocking overlay while connecting / disconnected */
+.overlay {
+  display: none;
+}
+.cockpit.is-blocked .overlay {
+  display: flex;
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  background: rgb(11 13 18 / 0.72);
+  backdrop-filter: blur(3px);
+  border-radius: var(--radius);
+  z-index: 2;
+}
+.overlay-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  padding: 24px;
+}
+.overlay-card p {
+  margin: 0;
+}
+.overlay-actions {
+  display: flex;
+  gap: 8px;
+}
+.spinner {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid var(--line);
+  border-top-color: var(--car);
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  transform: translate(-50%, 20px);
+  max-width: calc(100% - 32px);
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: #2a3142;
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 10;
+}
+.toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ---- Landscape: steering left, gauge center, throttle right (like a gamepad) ---- */
+@media (orientation: landscape) and (min-width: 640px) {
+  .cockpit {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) 140px;
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      'steer dash pedals'
+      'steer brake pedals'
+      'footer footer footer';
+  }
+  .lane {
+    min-height: 0;
+  }
+}
+
+@media (max-height: 480px) and (orientation: landscape) {
+  .topbar {
+    padding: 6px 16px;
+  }
+  .car-footer .swatch {
+    width: 22px;
+    height: 22px;
+  }
+  .brake {
+    min-height: 52px;
+  }
+}
+
+@media (max-width: 420px) {
+  .brand em {
+    display: none;
+  }
+  .topbar {
+    padding: 10px 12px;
+  }
+  .stage,
+  .garage {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .btn {
+    padding: 0 12px;
+  }
+  .brake {
+    min-height: 60px;
+  }
+}
+
+@media (max-height: 700px) and (orientation: portrait) {
+  .lane {
+    min-height: 72px;
+  }
+  .uturn {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
