@@ -9,6 +9,8 @@ const BRAKE_ACCEL = 30000;
 const MIN_LANE_SPEED = 300;
 /** Roughly one lane width in mm. */
 const LANE_WIDTH = 44;
+/** Widest sideways move in one go (from one edge lane to the middle and a bit). */
+const MAX_SHIFT = 70;
 const BATTERY_POLL_MS = 30_000;
 
 export type CarStatus = 'connecting' | 'ready' | 'reconnecting' | 'disconnected';
@@ -174,11 +176,11 @@ export class Car extends EventTarget {
   }
 
   laneLeft(): void {
-    this.changeLane(-LANE_WIDTH);
+    this.shiftLane(-LANE_WIDTH);
   }
 
   laneRight(): void {
-    this.changeLane(LANE_WIDTH);
+    this.shiftLane(LANE_WIDTH);
   }
 
   uTurn(): void {
@@ -192,13 +194,14 @@ export class Car extends EventTarget {
   }
 
   /**
-   * Lane changes are relative: tell the car it is at the center (offset 0),
-   * then ask it to move one lane width to either side.
+   * Lane changes are relative: tell the car it is at the center (offset 0), then ask it
+   * to move `delta` mm sideways (negative = left). `hard` swerves fast, for shoving.
    */
-  private changeLane(delta: number): void {
+  shiftLane(delta: number, hard = false): void {
     if (this.state.targetSpeed < MIN_LANE_SPEED) this.setSpeed(MIN_LANE_SPEED);
+    const d = Math.max(-MAX_SHIFT, Math.min(MAX_SHIFT, delta));
     this.send(Msg.setOffsetFromCenter(0));
-    this.send(Msg.changeLane(600, 8000, delta, 1, this.laneTag));
+    this.send(hard ? Msg.changeLane(1000, 15000, d, 1, this.laneTag) : Msg.changeLane(600, 8000, d, 1, this.laneTag));
     this.laneTag = (this.laneTag + 1) & 0xff;
   }
 

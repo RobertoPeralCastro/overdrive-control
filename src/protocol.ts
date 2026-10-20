@@ -140,7 +140,7 @@ export type VehicleMessage =
   | { type: 'version'; version: number }
   | { type: 'ping' }
   | { type: 'position'; locationId: number; pieceId: number; offset: number; speed: number }
-  | { type: 'transition'; pieceIdx: number; prevPieceIdx: number; offset?: number }
+  | { type: 'transition'; pieceIdx: number; prevPieceIdx: number; offset?: number; leftWheelCm?: number; rightWheelCm?: number }
   | { type: 'status'; onTrack: boolean; onCharger: boolean; lowBattery: boolean; chargedBattery: boolean };
 
 /** Some firmware reports millivolts (≈3300..4200), others a plain percentage. */
@@ -184,6 +184,9 @@ export function parseMessage(data: DataView): VehicleMessage | null {
         pieceIdx: data.getInt8(at),
         prevPieceIdx: data.getInt8(at + 1),
         offset: remaining >= 6 ? data.getFloat32(at + 2, true) : undefined,
+        // How far each wheel rolled over the piece just left: the outer wheel goes further in a curve.
+        leftWheelCm: remaining >= 16 ? data.getUint8(at + 14) : undefined,
+        rightWheelCm: remaining >= 16 ? data.getUint8(at + 15) : undefined,
       };
     case MsgId.V2C_STATUS:
       if (remaining < 4) return null;

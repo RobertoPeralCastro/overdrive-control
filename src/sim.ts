@@ -3,8 +3,9 @@ import type { Transport } from './transport';
 
 let simCount = 0;
 const SIM_MODELS = [9, 10, 8, 11];
-/** Piece IDs of a 12-piece oval: start line (33, finish section 34), straights and curves. */
-const SIM_TRACK = [33, 36, 17, 18, 39, 20, 23, 40, 17, 18, 36, 34];
+/** Piece IDs of an oval: start line (33, finish section 34), straights and 4 left curves. */
+const SIM_TRACK = [33, 36, 57, 17, 18, 39, 40, 46, 48, 20, 23, 51, 34];
+const SIM_CURVES = new Set([17, 18, 20, 23]);
 
 /** Fake car that speaks the protocol, for trying the UI without hardware (?demo). */
 export class SimTransport implements Transport {
@@ -73,10 +74,19 @@ export class SimTransport implements Transport {
     this.offset += Math.max(-6, Math.min(6, this.targetOffset - this.offset));
     this.distance += this.speed * dt;
     this.battery = Math.max(3300, this.battery - this.speed * 0.0002);
+    const n = SIM_TRACK.length;
     if (this.distance > 560) {
       this.distance = 0;
-      this.piece = (this.piece + 1) % 12;
-      this.emit(MsgId.V2C_LOC_TRANS, [this.piece, (this.piece + 11) % 12]);
+      // Wheel distances of the piece just left: the right (outer) wheel rolls further in a left curve.
+      const curve = SIM_CURVES.has(SIM_TRACK[this.piece]);
+      const t = new DataView(new ArrayBuffer(16));
+      this.piece = (this.piece + 1) % n;
+      t.setInt8(0, this.piece);
+      t.setInt8(1, (this.piece + n - 1) % n);
+      t.setFloat32(2, this.offset, true);
+      t.setUint8(14, curve ? 40 : 56);
+      t.setUint8(15, curve ? 50 : 56);
+      this.emit(MsgId.V2C_LOC_TRANS, [...new Uint8Array(t.buffer)]);
     }
     if (tick % 3 === 0 && this.speed > 10) {
       const p = new DataView(new ArrayBuffer(8));

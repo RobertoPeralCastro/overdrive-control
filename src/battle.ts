@@ -1,6 +1,6 @@
 import type { Car } from './car';
+import type { Field } from './field';
 import { LightEffect } from './protocol';
-import { TrackLearner, type Lap } from './track';
 
 /**
  * Virtual weapons, like the official Overdrive app: the cars have no real guns, so hits are
@@ -38,10 +38,6 @@ export const MAX_ENERGY = 100;
 const ENERGY_PER_SEC = 12;
 const SHIELD_MS = 3000;
 const KNOCKOUT_MS = 3000;
-/** A car that has not reported its position for this long is not on the track. */
-const STALE_MS = 3000;
-const SCAN_SPEED = 450;
-const SCAN_TIMEOUT_MS = 60_000;
 const HIT_COLOR = '#ff0000';
 const SHIELD_COLOR = '#64d2ff';
 
@@ -54,18 +50,18 @@ export interface Fighter {
   shieldUntil: number;
   /** Knocked out (armor 0) until this time. */
   downUntil: number;
-  piece?: number;
-  seenAt: number;
-  /** Index in the learned lap and driving direction along it. */
-  idx?: number;
-  dir: 1 | -1;
-  learner: TrackLearner;
 }
 
 export interface Hit {
   target: Car;
   blocked: boolean;
   knockedOut: boolean;
+}
+
+export interface FireDetail {
+  shooter: Car;
+  weapon: Weapon;
+  hits: Hit[];
 }
 
 export type FireResult = { ok: true; hits: Hit[] } | { ok: false; reason: string };
@@ -76,17 +72,14 @@ export interface Target {
 }
 
 export class Battle extends EventTarget {
-  /** Learned lap, in the driving order of the car that learned it. */
-  lap?: number[];
-  scanning?: Car;
+  enabled = true;
   private fighters = new Map<Car, Fighter>();
   private lastTick: number;
   private timer?: ReturnType<typeof setInterval>;
-  private scanTimer?: ReturnType<typeof setTimeout>;
 
-  constructor(private now: () => number = () => performance.now()) {
+  constructor(readonly field: Field) {
     super();
-    this.lastTick = now();
+    this.lastTick = field.now();
   }
 
   start(): void {
@@ -95,6 +88,7 @@ export class Battle extends EventTarget {
 
   add(car: Car): void {
     if (this.fighters.has(car)) return;
+    this.field.add(car);
     this.fighters.set(car, {
       car,
       armor: MAX_ARMOR,
@@ -103,65 +97,34 @@ export class Battle extends EventTarget {
       readyAt: { blaster: 0, missile: 0, pulse: 0, shield: 0 },
       shieldUntil: 0,
       downUntil: 0,
-      seenAt: -Infinity,
-      dir: 1,
-      learner: new TrackLearner(),
-    });
-    car.addEventListener('message', (e) => {
-      const msg = (e as CustomEvent).detail;
-      if (msg.type === 'position') this.observe(car, msg.pieceId);
     });
   }
 
   remove(car: Car): void {
     this.fighters.delete(car);
-    if (this.scanning === car) this.stopScan();
+    this.field.remove(car);
   }
 
   fighter(car: Car): Fighter | undefined {
     return this.fighters.get(car);
   }
 
-  /** Drives `car` around one lap at a gentle speed and brakes once the track is known. */
-  scan(car: Car): void {
-    this.lap = undefined;
-    this.fighters.forEach((f) => {
-      f.learner.reset();
-      f.idx = undefined;
-    });
-    this.scanning = car;
-    car.setSpeed(SCAN_SPEED);
-    clearTimeout(this.scanTimer);
-    this.scanTimer = setTimeout(() => {
-      this.stopScan();
-      this.dispatchEvent(new CustomEvent('scanfail'));
-    }, SCAN_TIMEOUT_MS);
-    this.changed();
-  }
-
-  /** Every piece change of every car. Public so tests can drive it. */
-  observe(car: Car, pieceId: number): void {
-    const f = this.fighters.get(car);
-    if (!f) return;
-    f.seenAt = this.now();
-    if (pieceId === f.piece) return;
-    f.piece = pieceId;
-    if (!this.lap) {
-      const lap = f.learner.push(pieceId);
-      if (lap) this.learned(lap, f);
-    } else {
-      this.locate(f);
+  /** Back to full armor and energy, no kills (a new race). */
+  reset(): void {
+    for (const f of this.fighters.values()) {
+      Object.assign(f, { armor: MAX_ARMOR, energy: MAX_ENERGY, kills: 0, shieldUntil: 0, downUntil: 0 });
+      f.readyAt = { blaster: 0, missile: 0, pulse: 0, shield: 0 };
     }
+    this.changed();
   }
 
   /** Closest car ahead of `car` within `range` pieces. */
   targetFor(car: Car, range = Math.max(...WEAPONS.map((w) => w.range))): Target | undefined {
-    const me = this.fighters.get(car);
-    if (!me || !this.active(me)) return undefined;
+    if (!this.fighters.has(car) || !this.field.active(car)) return undefined;
     let best: Target | undefined;
     for (const f of this.fighters.values()) {
-      if (f === me || !this.active(f) || f.downUntil > this.now()) continue;
-      const d = this.distance(me, f);
+      if (f.car === car || !this.field.active(f.car) || f.downUntil > this.field.now()) continue;
+      const d = this.field.distance(car, f.car);
       if (d <= range && (!best || d < best.pieces)) best = { car: f.car, pieces: d };
     }
     return best;
@@ -170,7 +133,8 @@ export class Battle extends EventTarget {
   fire(car: Car, id: WeaponId): FireResult {
     const me = this.fighters.get(car);
     const w = WEAPONS.find((x) => x.id === id)!;
-    const t = this.now();
+    const t = this.field.now();
+    if (!this.enabled) return { ok: false, reason: 'Armas desactivadas' };
     if (!me || !car.ready) return { ok: false, reason: 'Coche no conectado' };
     if (me.downUntil > t) return { ok: false, reason: 'Estás fuera de combate' };
     if (me.readyAt[id] > t) return { ok: false, reason: 'Recargando' };
@@ -179,22 +143,21 @@ export class Battle extends EventTarget {
     me.energy -= w.energy;
     me.readyAt[id] = t + w.cooldownMs;
 
+    let hits: Hit[] = [];
     if (id === 'shield') {
       me.shieldUntil = t + SHIELD_MS;
       car.flashLights(SHIELD_COLOR, SHIELD_MS, LightEffect.THROB, 30);
-      this.changed();
-      return { ok: true, hits: [] };
+    } else {
+      const victims = w.area ? this.around(car, w.range) : [this.targetFor(car, w.range)].flatMap((x) => (x ? [this.fighters.get(x.car)!] : []));
+      hits = victims.map((v) => this.damage(me, v, w));
     }
-
-    const victims = w.area ? this.around(me, w.range) : [this.targetFor(car, w.range)].filter((x) => !!x).map((x) => this.fighters.get(x.car)!);
-    const hits = victims.map((v) => this.damage(me, v, w));
-    this.dispatchEvent(new CustomEvent('fire', { detail: { shooter: car, weapon: w, hits } }));
+    this.dispatchEvent(new CustomEvent<FireDetail>('fire', { detail: { shooter: car, weapon: w, hits } }));
     this.changed();
     return { ok: true, hits };
   }
 
   tick(): void {
-    const t = this.now();
+    const t = this.field.now();
     const dt = Math.max(0, t - this.lastTick) / 1000;
     this.lastTick = t;
     for (const f of this.fighters.values()) {
@@ -206,7 +169,7 @@ export class Battle extends EventTarget {
   }
 
   private damage(shooter: Fighter, target: Fighter, w: Weapon): Hit {
-    const t = this.now();
+    const t = this.field.now();
     if (target.shieldUntil > t) return { target: target.car, blocked: true, knockedOut: false };
     target.armor = Math.max(0, target.armor - w.damage);
     if (target.armor === 0) {
@@ -222,72 +185,15 @@ export class Battle extends EventTarget {
   }
 
   /** Everyone within `range` pieces, in either direction. */
-  private around(me: Fighter, range: number): Fighter[] {
+  private around(car: Car, range: number): Fighter[] {
+    const now = this.field.now();
     return [...this.fighters.values()].filter(
-      (f) => f !== me && this.active(f) && f.downUntil <= this.now() && Math.min(this.distance(me, f), this.distance(f, me)) <= range,
+      (f) =>
+        f.car !== car &&
+        this.field.active(f.car) &&
+        f.downUntil <= now &&
+        Math.min(this.field.distance(car, f.car), this.field.distance(f.car, car)) <= range,
     );
-  }
-
-  /** Pieces from `a` forward to `b` along a's driving direction. Infinity if unknown. */
-  private distance(a: Fighter, b: Fighter): number {
-    if (a.piece === undefined || b.piece === undefined) return Infinity;
-    if (this.lap && a.idx !== undefined && b.idx !== undefined) {
-      const n = this.lap.length;
-      return ((((b.idx - a.idx) * a.dir) % n) + n) % n;
-    }
-    // Track not learned yet: only cars on the same kind of piece count, as if side by side.
-    return a.piece === b.piece ? 0 : Infinity;
-  }
-
-  private active(f: Fighter): boolean {
-    return f.car.ready && this.now() - f.seenAt < STALE_MS;
-  }
-
-  private learned(lap: Lap, from: Fighter): void {
-    this.lap = lap.pieces;
-    this.fighters.forEach((f) => (f.idx = undefined));
-    from.idx = lap.at;
-    from.dir = 1;
-    this.fighters.forEach((f) => f !== from && this.locate(f));
-    if (this.scanning) {
-      this.scanning.brake();
-      this.stopScan();
-    }
-    this.dispatchEvent(new CustomEvent('track', { detail: this.lap }));
-    this.changed();
-  }
-
-  /** Moves a car's lap index to the nearest piece with its current ID; that also tells its direction. */
-  private locate(f: Fighter): void {
-    const lap = this.lap!;
-    const n = lap.length;
-    const options = lap.flatMap((id, i) => (id === f.piece ? [i] : []));
-    if (!options.length) {
-      f.idx = undefined;
-      return;
-    }
-    if (f.idx === undefined) {
-      f.idx = options[0];
-      return;
-    }
-    let best = options[0];
-    let bestStep = Infinity;
-    let dir = f.dir;
-    for (const i of options) {
-      const fwd = (i - f.idx + n) % n;
-      const back = (f.idx - i + n) % n;
-      if (fwd < bestStep) [best, bestStep, dir] = [i, fwd, 1];
-      if (back < bestStep) [best, bestStep, dir] = [i, back, -1];
-    }
-    f.idx = best;
-    // A one or two piece jump is normal driving; anything further is a misread, not a U-turn.
-    if (bestStep > 0 && bestStep <= 2) f.dir = dir;
-  }
-
-  private stopScan(): void {
-    clearTimeout(this.scanTimer);
-    this.scanning = undefined;
-    this.changed();
   }
 
   private changed(): void {

@@ -14,15 +14,27 @@ El protocolo está portado de [OpenOverdrive](https://github.com/dschwen/OpenOve
 
 ### Controles
 
-| Acción            | Pantalla            | Teclado          | Mando (Xbox/PS) |
-|-------------------|---------------------|------------------|-----------------|
-| Velocidad         | Acelerador / ▲ ▼    | W / S, ↑ / ↓     | RT (gatillo)    |
-| Frenar            | FRENO               | Espacio          | LT o B          |
-| Carril izq./der.  | ‹ Carril / Carril › | A / D, ← / →     | LB / RB, cruceta|
-| Media vuelta      | Media vuelta        | U                | Y               |
-| Láser / Misil     | Botones de armas    | Q / E            | A / X           |
-| Pulso / Escudo    | Botones de armas    | R / F            | L3 / R3         |
-| Frenar todos      | STOP                | Esc              | —               |
+| Acción            | Pantalla            | Teclado          | Mando (Xbox/PS)          |
+|-------------------|---------------------|------------------|--------------------------|
+| Velocidad         | Acelerador / ▲ ▼    | W / S, ↑ / ↓     | RT (gatillo), cruceta ▲▼ |
+| Frenar            | FRENO               | Espacio          | LT o B                   |
+| Carril izq./der.  | ‹ Carril / Carril › | A / D, ← / →     | LB / RB, cruceta, stick  |
+| Media vuelta      | Media vuelta        | U                | Y                        |
+| Láser / Misil     | Botones de armas    | Q / E            | A / X                    |
+| Pulso / Escudo    | Botones de armas    | R / F            | L3 / R3                  |
+| Empezar carrera   | Empezar carrera     | —                | Start                    |
+| Frenar todos      | STOP                | Esc              | Select / Back            |
+| Cambiar de coche  | Pestañas            | 1–9 (0: carrera) | —                        |
+
+### Mandos USB y Bluetooth
+
+Cualquier mando que el navegador reconozca (Xbox, PlayStation, 8BitDo…) funciona por cable o por
+Bluetooth. El navegador solo lo muestra después de **pulsar un botón** del mando. Se pueden usar varios a la vez:
+en la pantalla **Carrera** elige "Mando 1", "Mando 2"… como piloto de cada coche. Un mando sin coche asignado
+conduce el coche que tengas seleccionado.
+
+Mientras un mando conduce el coche que estás viendo, la pantalla oculta los controles táctiles y muestra en su
+lugar el velocímetro, el blindaje, la energía y el mapa de la pista. **Mostrar controles** los recupera.
 
 ### Armas y escaneo de pista
 
@@ -40,7 +52,28 @@ La energía se recarga sola. Para saber quién va delante la app necesita conoce
 pulsa **Escanear pista** y el coche dará una vuelta despacio y frenará en la línea de salida. Si no lo
 haces, la app aprende la pista igualmente mientras conduces (en pistas sin pieza de salida tarda dos vueltas).
 Hasta entonces solo se puede alcanzar a un coche que esté en el mismo tipo de pieza.
-| Cambiar de coche  | Pestañas            | 1–9              | —               |
+Cada arma tiene su efecto de sonido.
+
+### Carrera
+
+La pestaña **🏁 Carrera** dibuja la pista escaneada y muestra los coches moviéndose sobre ella en directo.
+Hacia dónde gira cada curva se sabe por la distancia que recorre cada rueda; si falta ese dato, la curva se
+dibuja hacia la izquierda.
+
+1. Elige el número de vueltas, si hay armas o no, y el piloto de cada coche: tú en pantalla, un mando o la IA.
+2. **Empezar carrera**: semáforo de 5 luces rojas con pitidos; al apagarse, ¡salida! Antes los coches no se mueven,
+   aunque ya tengas el acelerador puesto.
+3. La app cuenta las vueltas al cruzar la meta, muestra la clasificación en directo y la mejor vuelta, y anuncia
+   al ganador. Cada coche frena al terminar.
+
+| Nivel de IA | Qué hace                                                                                       |
+|-------------|------------------------------------------------------------------------------------------------|
+| IA fácil    | Va tranquila (≈600 mm/s), casi no dispara y nunca empuja.                                       |
+| IA normal   | Ritmo de carrera (≈850 mm/s), dispara a menudo y a veces te embiste por detrás en las curvas.   |
+| IA difícil  | Rápida (≈1100 mm/s) y agresiva: te embiste en las curvas y se pone a tu lado para sacarte.      |
+
+Los empujones son reales: la IA se alinea con tu carril y acelera a fondo cuando entras en una curva, o se pone
+a tu altura y da un volantazo hacia ti. **Pueden sacar coches de la pista**, así que ojo si la pista está en una mesa.
 
 ## Dónde funciona
 
@@ -81,11 +114,17 @@ src/
   transport.ts  Conexión Web Bluetooth (GATT, notificaciones, reintentos)
   sim.ts        Coche simulado para el modo demo
   car.ts        Lógica de un coche: handshake, cola de escritura, velocidad, carriles, reconexión
-  track.ts      Aprende el orden de las piezas de la pista (escaneo)
+  track.ts      Aprende el orden de las piezas y el giro de las curvas (escaneo)
+  field.ts      Posición de cada coche en la pista aprendida
+  trackmap.ts   Geometría del mapa de la pista
   battle.ts     Armas virtuales: blindaje, energía, objetivos e impactos
-  gamepad.ts    Soporte de mando
+  race.ts       Carrera: semáforo, vueltas, clasificación y ganador
+  ai.ts         Pilotos de IA (3 niveles, con empujones)
+  sound.ts      Efectos de sonido sintetizados con Web Audio
+  gamepad.ts    Varios mandos USB/Bluetooth a la vez
+  raceview.ts   Pantalla de carrera y mapa en directo
   main.ts       Interfaz (TypeScript sin framework)
-tests/          Tests de bytes del protocolo y del comportamiento de Car
+tests/          Tests del protocolo, Car, pista, armas, carrera e IA
 ```
 
 `Car` serializa las escrituras GATT (Web Bluetooth no admite operaciones solapadas) y fusiona los

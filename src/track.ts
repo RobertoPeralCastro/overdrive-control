@@ -12,6 +12,8 @@ const CROSS_IDS = new Set([10]);
 const MAX_HISTORY = 400;
 
 export type PieceKind = 'salida' | 'recta' | 'curva' | 'cruce' | 'otra';
+/** Which way a piece bends in the driving direction. */
+export type Turn = 'L' | 'R' | 'S';
 
 export function pieceKind(id: number): PieceKind {
   if (START_IDS.includes(id)) return 'salida';
@@ -21,26 +23,45 @@ export function pieceKind(id: number): PieceKind {
   return 'otra';
 }
 
+/** The outer wheel rolls further through a curve. Below 2 cm of difference it is a straight. */
+export function turnFromWheels(leftCm: number, rightCm: number): Turn {
+  if (Math.abs(leftCm - rightCm) < 2) return 'S';
+  return leftCm > rightCm ? 'R' : 'L';
+}
+
 export interface Lap {
   /** Piece IDs in driving order. */
   pieces: number[];
+  /** Bend of each piece, when the car reported it. */
+  turns: (Turn | undefined)[];
   /** Index in `pieces` of the piece the car is on right now. */
   at: number;
 }
 
 export class TrackLearner {
   private seq: number[] = [];
+  private turns: (Turn | undefined)[] = [];
 
   /** Feed every piece ID the car reports; returns the lap once it has seen a full one. */
   push(pieceId: number): Lap | undefined {
     if (this.seq.at(-1) === pieceId) return undefined;
     this.seq.push(pieceId);
-    if (this.seq.length > MAX_HISTORY) this.seq.shift();
+    this.turns.push(undefined);
+    if (this.seq.length > MAX_HISTORY) {
+      this.seq.shift();
+      this.turns.shift();
+    }
     return this.lapFromStartLine() ?? this.lapFromRepetition();
+  }
+
+  /** How the piece the car is on now bends (reported when the car leaves it). */
+  markTurn(turn: Turn): void {
+    if (this.turns.length) this.turns[this.turns.length - 1] = turn;
   }
 
   reset(): void {
     this.seq = [];
+    this.turns = [];
   }
 
   /** Official tracks: a lap is everything between two passes over the start line. */
@@ -49,7 +70,7 @@ export class TrackLearner {
       const last = this.seq.length - 1;
       if (this.seq[last] !== id) continue;
       const prev = this.seq.lastIndexOf(id, last - 1);
-      if (prev >= 0 && last - prev >= 3) return { pieces: this.seq.slice(prev, last), at: 0 };
+      if (prev >= 0 && last - prev >= 3) return { pieces: this.seq.slice(prev, last), turns: this.turns.slice(prev, last), at: 0 };
     }
     return undefined;
   }
@@ -60,7 +81,10 @@ export class TrackLearner {
     for (let p = 3; p * 2 <= n; p++) {
       let same = true;
       for (let i = n - p; i < n && same; i++) same = this.seq[i] === this.seq[i - p];
-      if (same) return { pieces: this.seq.slice(n - p), at: p - 1 };
+      if (same) {
+        const turns = this.turns.slice(n - p).map((t, i) => t ?? this.turns[n - 2 * p + i]);
+        return { pieces: this.seq.slice(n - p), turns, at: p - 1 };
+      }
     }
     return undefined;
   }

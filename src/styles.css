@@ -495,6 +495,338 @@ button {
   color: var(--muted);
 }
 
+/* ---- Gamepad mode: no touch controls, telemetry and map fill the screen ---- */
+
+.pad-panel {
+  display: none;
+}
+.cockpit.is-pad {
+  grid-template-columns: 1fr;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'dash'
+    'pad'
+    'footer';
+}
+.cockpit.is-pad .steer,
+.cockpit.is-pad .pedals,
+.cockpit.is-pad .arms,
+.cockpit.is-pad .brake {
+  display: none;
+}
+.cockpit.is-pad .pad-panel {
+  grid-area: pad;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+.cockpit.is-pad .gauge {
+  max-height: 200px;
+}
+.pad-text {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+}
+.pad-map {
+  position: relative;
+  flex: 1;
+  min-height: 180px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.map-car.is-me circle {
+  r: 0.18;
+  stroke-width: 0.05;
+}
+@media (orientation: landscape) and (min-width: 640px) {
+  .cockpit.is-pad {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'dash pad'
+      'footer footer';
+  }
+}
+
+/* ---- Race screen ---- */
+
+.chip-race {
+  font-weight: 700;
+}
+.race {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+.race-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.race-title {
+  margin: 0;
+  font-size: 1.3rem;
+}
+.race-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.laps {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.laps-num {
+  min-width: 5.5em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9rem;
+}
+.race-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
+  gap: 12px;
+}
+.race-stage {
+  position: relative;
+  min-height: 240px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.race-map {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+.map-svg {
+  width: 100%;
+  height: 100%;
+}
+.map-edge,
+.map-road,
+.map-center {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.map-edge {
+  stroke: #3a4256;
+  stroke-width: 0.42;
+}
+.map-road {
+  stroke: #232a3a;
+  stroke-width: 0.36;
+}
+.map-center {
+  stroke: rgb(255 255 255 / 0.25);
+  stroke-width: 0.015;
+  stroke-dasharray: 0.08 0.08;
+}
+.map-start {
+  stroke: #fff;
+  stroke-width: 0.06;
+  stroke-dasharray: 0.06 0.06;
+}
+.map-car circle {
+  stroke: #fff;
+  stroke-width: 0.03;
+  filter: drop-shadow(0 0 0.06px rgb(0 0 0 / 0.8));
+}
+.map-car text {
+  fill: var(--text);
+  font-size: 0.17px;
+  font-weight: 700;
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 0.04px;
+}
+.map-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  color: var(--muted);
+}
+.map-empty p {
+  margin: 0;
+  max-width: 30ch;
+}
+
+/* F1-style start lights over the map */
+.lights {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #05060a;
+  border-radius: 14px;
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.5);
+}
+.lights.is-on {
+  display: flex;
+}
+.bulb {
+  width: clamp(26px, 7vmin, 44px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #2a0b0b;
+  border: 2px solid #1a1d27;
+}
+.bulb.is-lit {
+  background: radial-gradient(circle at 40% 35%, #ff8a80, #ff1a1a 55%, #a00000);
+  box-shadow: 0 0 18px #ff2a2a;
+}
+.race-banner {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translate(-50%, 20px);
+  padding: 12px 22px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ffd60a, #ff9f0a);
+  color: #1a1200;
+  font-weight: 800;
+  font-size: 1.2rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s;
+  white-space: nowrap;
+}
+.race-banner.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.race-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+}
+.race-table {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.race-row {
+  display: grid;
+  grid-template-columns: 2.2em auto 1fr auto;
+  grid-template-areas:
+    'pos dot name laps'
+    'pos driver driver time'
+    'pos armor armor armor';
+  align-items: center;
+  gap: 4px 8px;
+  padding: 10px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--car);
+  border-radius: 12px;
+}
+.race-row.is-winner {
+  border-color: #ffd60a;
+  box-shadow: 0 0 16px rgb(255 214 10 / 0.25);
+}
+.race-row.is-off {
+  opacity: 0.5;
+}
+.race-row .chip-dot {
+  grid-area: dot;
+}
+.race-pos {
+  grid-area: pos;
+  font-size: 1.3rem;
+  font-weight: 800;
+  text-align: center;
+}
+.race-name {
+  grid-area: name;
+  font-weight: 700;
+}
+.race-laps {
+  grid-area: laps;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.race-time {
+  grid-area: time;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.race-time.is-rough {
+  color: var(--danger);
+  font-weight: 700;
+}
+.race-hint p {
+  margin: 4px 0 0;
+}
+.driver {
+  grid-area: driver;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+}
+.race-armor {
+  grid-area: armor;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--panel-2);
+  overflow: hidden;
+}
+.race-armor span {
+  display: block;
+  height: 100%;
+  background: var(--ok);
+}
+.race-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+@media (max-width: 760px) {
+  .race-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(220px, 1fr) auto;
+  }
+  .race-side {
+    overflow: visible;
+  }
+}
+
 /* Big touch pads */
 .btn-pad {
   display: flex;
