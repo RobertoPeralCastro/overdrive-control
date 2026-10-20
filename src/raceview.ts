@@ -3,7 +3,7 @@ import type { Battle } from './battle';
 import type { Car } from './car';
 import { h } from './dom';
 import type { Gamepads } from './gamepad';
-import { MapView } from './mapview';
+import { MapView, fieldSource } from './mapview';
 import { LIGHTS, type Driver, type Race } from './race';
 import { sound } from './sound';
 import { describeTrack } from './track';
@@ -41,7 +41,7 @@ export class RaceView {
     this.actionBtn = h('button', { class: 'btn btn-primary', onclick: () => this.action() });
     this.lights = h('div', { class: 'lights', 'aria-hidden': 'true' }, Array.from({ length: LIGHTS }, () => h('span', { class: 'bulb' })));
     this.banner = h('div', { class: 'race-banner', role: 'status' });
-    this.map = new MapView(d.battle.field, { cars: d.cars, scan: d.scan });
+    this.map = new MapView(() => fieldSource(d.battle.field, { cars: d.cars, scan: d.scan }));
     this.table = h('div', { class: 'race-table', role: 'table', 'aria-label': 'Pilotos' });
     this.padsLine = h('p', { class: 'race-hint' });
 
@@ -121,14 +121,17 @@ export class RaceView {
       const select = h(
         'select',
         { class: 'driver', 'aria-label': `Piloto de ${car.state.name}`, onchange: (ev: Event) => race.setDriver(car, parseDriver((ev.target as HTMLSelectElement).value)) },
-        [
-          option('screen', 'Tú (pantalla)', driver),
-          ...pads.map((p) => option(`pad:${p.index}`, `Mando ${p.index + 1}`, driver)),
-          ...(driver.kind === 'pad' && !pads.some((p) => p.index === driver.index) ? [option(`pad:${driver.index}`, `Mando ${driver.index + 1} (sin conectar)`, driver)] : []),
-          ...(Object.keys(AI_LEVELS) as AiLevel[]).map((lv) => option(`ai:${lv}`, AI_LEVELS[lv].name, driver)),
-        ],
+        driver.kind === 'guest'
+          ? [option('guest', '📱 Su móvil', driver)]
+          : [
+              option('screen', 'Tú (pantalla)', driver),
+              ...pads.map((p) => option(`pad:${p.index}`, `Mando ${p.index + 1}`, driver)),
+              ...(driver.kind === 'pad' && !pads.some((p) => p.index === driver.index) ? [option(`pad:${driver.index}`, `Mando ${driver.index + 1} (sin conectar)`, driver)] : []),
+              ...(Object.keys(AI_LEVELS) as AiLevel[]).map((lv) => option(`ai:${lv}`, AI_LEVELS[lv].name, driver)),
+            ],
       );
-      select.disabled = live;
+      // A guest's car is driven from their phone.
+      select.disabled = live || driver.kind === 'guest';
       if (driver.kind === 'ai') select.title = AI_LEVELS[driver.level].about;
       const move = race.aiMove(car);
       const best = e?.lapTimes.length ? Math.min(...e.lapTimes) : undefined;
@@ -177,7 +180,9 @@ function option(value: string, label: string, current: Driver): HTMLOptionElemen
 }
 
 function driverValue(d: Driver): string {
-  return d.kind === 'screen' ? 'screen' : d.kind === 'pad' ? `pad:${d.index}` : `ai:${d.level}`;
+  if (d.kind === 'pad') return `pad:${d.index}`;
+  if (d.kind === 'ai') return `ai:${d.level}`;
+  return d.kind;
 }
 
 function parseDriver(v: string): Driver {

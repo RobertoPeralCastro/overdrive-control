@@ -26,9 +26,10 @@ export class SimTransport implements Transport {
   private battery = 4100;
   private timer?: ReturnType<typeof setInterval>;
 
-  constructor() {
+  /** `model` picks the car model (a guest phone uses a different one than the host). */
+  constructor(model?: number) {
     this.id = `sim-${++simCount}`;
-    this.modelId = SIM_MODELS[(simCount - 1) % SIM_MODELS.length];
+    this.modelId = model ?? SIM_MODELS[(simCount - 1) % SIM_MODELS.length];
   }
 
   async connect(): Promise<void> {

@@ -36,6 +36,23 @@ conduce el coche que tengas seleccionado.
 Mientras un mando conduce el coche que estás viendo, la pantalla oculta los controles táctiles y muestra en su
 lugar el velocímetro, el blindaje, la energía y el mapa de la pista. **Mostrar controles** los recupera.
 
+### Dos o más jugadores
+
+Hay dos formas de jugar varios a la vez:
+
+- **Un móvil y varios mandos.** Un solo móvil conecta todos los coches. En **🏁 Carrera** asigna "Mando 1",
+  "Mando 2"… a cada coche (también puedes poner coches con IA).
+- **Varios móviles.** Cada jugador conduce su coche desde su propio móvil:
+  1. En el móvil anfitrión pulsa **📱** (arriba) → aparece un **código QR** y un código de 5 letras.
+  2. En el otro móvil, escanea el QR con la cámara (o abre la app, pulsa 📱 y escribe el código).
+  3. Ese móvil conecta **su** coche por Bluetooth y ya lo conduce, con pantalla, teclado o mando.
+  4. El anfitrión maneja la carrera desde **🏁 Carrera**: semáforo, vueltas, armas e IA valen para todos,
+     y cada móvil ve su cockpit, el semáforo, su posición, la clasificación y el mapa, con sonidos.
+
+  La conexión es directa entre móviles (WebRTC). Solo para encontrarse usan el servidor público y gratuito de
+  [PeerJS](https://peerjs.com), así que hace falta internet (wifi o datos) en ambos. Cada coche solo puede estar
+  conectado a un móvil a la vez.
+
 ### Armas y escaneo de pista
 
 Como en la app oficial, las armas son virtuales: la app calcula los impactos y el coche alcanzado
@@ -122,9 +139,15 @@ src/
   ai.ts         Pilotos de IA (3 niveles, con empujones)
   sound.ts      Efectos de sonido sintetizados con Web Audio
   gamepad.ts    Varios mandos USB/Bluetooth a la vez
-  raceview.ts   Pantalla de carrera y mapa en directo
-  main.ts       Interfaz (TypeScript sin framework)
-tests/          Tests del protocolo, Car, pista, armas, carrera e IA
+  raceview.ts   Pantalla de carrera
+  mapview.ts    Mapa de la pista con los coches en directo
+  cockpit.ts    Pantalla de conducción (la misma en el anfitrión y en el invitado)
+  net.ts        Conexión entre móviles (PeerJS/WebRTC)
+  remote.ts     Multijugador: puente Bluetooth del invitado y estado que le envía el anfitrión
+  host.ts       App del móvil anfitrión (TypeScript sin framework)
+  guest.ts      App del móvil invitado (?join=CÓDIGO)
+  main.ts       Elige anfitrión o invitado según la URL
+tests/          Tests del protocolo, Car, pista, armas, carrera, IA y multijugador
 ```
 
 `Car` serializa las escrituras GATT (Web Bluetooth no admite operaciones solapadas) y fusiona los

@@ -9,7 +9,8 @@ import type { MoveDetail } from './field';
  * to the first one going forward.
  */
 
-export type Driver = { kind: 'screen' } | { kind: 'pad'; index: number } | { kind: 'ai'; level: AiLevel };
+/** Who drives a car: this screen, a gamepad on this phone, the AI, or another phone (a guest). */
+export type Driver = { kind: 'screen' } | { kind: 'pad'; index: number } | { kind: 'ai'; level: AiLevel } | { kind: 'guest' };
 export type Phase = 'setup' | 'countdown' | 'running' | 'finished';
 
 export interface Entry {

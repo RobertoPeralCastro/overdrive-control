@@ -1,4 +1,5 @@
-import { MAX_SPEED, type Car } from './car';
+import { MAX_SPEED } from './car';
+import type { Drivable } from './cockpit';
 import type { WeaponId } from './battle';
 
 /**
@@ -13,8 +14,8 @@ import type { WeaponId } from './battle';
 
 export interface PadHooks {
   /** The car pad `index` drives, if any. */
-  carFor(index: number): Car | undefined;
-  fire(car: Car, weapon: WeaponId): void;
+  carFor(index: number): Drivable | undefined;
+  fire(car: Drivable, weapon: WeaponId): void;
   start(): void;
   stopAll(): void;
   notify(msg: string): void;

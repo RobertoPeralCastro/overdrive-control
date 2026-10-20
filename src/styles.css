@@ -495,6 +495,189 @@ button {
   color: var(--muted);
 }
 
+/* ---- Multiplayer: invite sheet (host) and race strip (guest) ---- */
+
+.sheet {
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--text);
+  overflow-y: auto;
+}
+.sheet::backdrop {
+  background: rgb(0 0 0 / 0.6);
+}
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 0;
+}
+.sheet-head h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.sheet-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  text-align: center;
+}
+.sheet-body p {
+  margin: 0;
+}
+.sheet .warn {
+  color: var(--text);
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+/* White box so the QR reads on the dark theme */
+.qr {
+  width: min(240px, 70vw);
+  aspect-ratio: 1;
+  padding: 8px;
+  background: #fff;
+  border-radius: 12px;
+}
+.qr svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.room-code strong {
+  font-size: 1.4rem;
+  letter-spacing: 0.2em;
+  font-variant-numeric: tabular-nums;
+}
+.guest-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+.guest-list li {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--panel-2);
+  font-size: 0.9rem;
+}
+.guest-list .muted {
+  color: var(--muted);
+  text-align: center;
+}
+.sheet-join {
+  border-top: 1px solid var(--line);
+  padding: 12px 16px 16px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.sheet-join p {
+  margin: 0 0 8px;
+}
+.join-row {
+  display: flex;
+  gap: 8px;
+}
+.code-input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.room-tag {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.stage-guest {
+  flex-direction: column;
+  gap: 8px;
+}
+.guest-race {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  font-size: 0.85rem;
+}
+.guest-race:empty {
+  display: none;
+}
+.guest-race-text {
+  flex: 1;
+  font-weight: 700;
+}
+.mini-lights {
+  display: flex;
+  gap: 4px;
+}
+.mini-lights[hidden] {
+  display: none;
+}
+.mini-lights .bulb {
+  width: 16px;
+}
+.sheet-map {
+  position: relative;
+  height: min(42vh, 280px);
+  margin: 12px 16px 0;
+  background: var(--panel-2);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.standings {
+  list-style: none;
+  margin: 0;
+  padding: 12px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.standings li {
+  display: grid;
+  grid-template-columns: 2.2em auto 1fr auto;
+  grid-template-areas: 'pos dot name laps' 'pos dot name time';
+  align-items: center;
+  gap: 0 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--panel-2);
+  border-left: 4px solid var(--car);
+}
+.standings li.is-me {
+  outline: 2px solid var(--car);
+}
+.standings .chip-dot {
+  grid-area: dot;
+}
+
 /* ---- Gamepad mode: no touch controls, telemetry and map fill the screen ---- */
 
 .pad-panel {
@@ -1070,7 +1253,8 @@ button {
 }
 
 @media (max-width: 420px) {
-  .brand em {
+  .brand em,
+  .btn-label {
     display: none;
   }
   .topbar {
