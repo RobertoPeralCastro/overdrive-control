@@ -1,4 +1,4 @@
-import { MODEL_NAMES, Msg, TurnType, V4_SPEED_MIN_VERSION, parseMessage, type VehicleMessage } from './protocol';
+import { LightEffect, MODEL_NAMES, Msg, TurnType, V4_SPEED_MIN_VERSION, parseMessage, type VehicleMessage } from './protocol';
 import { sleep, type Transport } from './transport';
 
 export const MAX_SPEED = 1500;
@@ -43,6 +43,10 @@ export class Car extends EventTarget {
   private flushing = false;
   private laneTag = 0;
   private batteryTimer?: ReturnType<typeof setInterval>;
+  /** Temporary speed ceiling from weapon hits; the cruise speed stays in state.targetSpeed. */
+  private speedCap?: number;
+  private capTimer?: ReturnType<typeof setTimeout>;
+  private lightTimer?: ReturnType<typeof setTimeout>;
 
   constructor(readonly transport: Transport) {
     super();
@@ -118,6 +122,8 @@ export class Car extends EventTarget {
 
   async disconnect(): Promise<void> {
     clearInterval(this.batteryTimer);
+    clearTimeout(this.capTimer);
+    clearTimeout(this.lightTimer);
     this.update({ status: 'disconnected' });
     try {
       await this.transport.write(Msg.setSpeed(0, BRAKE_ACCEL, this.v4));
@@ -131,11 +137,28 @@ export class Car extends EventTarget {
   // ---- Driving -------------------------------------------------------------
 
   setSpeed(speed: number): void {
-    const s = Math.round(Math.max(0, Math.min(MAX_SPEED, speed)));
-    const accel = s === 0 ? BRAKE_ACCEL : DRIVE_ACCEL;
-    this.update({ targetSpeed: s });
-    this.pendingSpeed = Msg.setSpeed(s, accel, this.v4);
-    void this.flush();
+    this.update({ targetSpeed: Math.round(Math.max(0, Math.min(MAX_SPEED, speed))) });
+    this.queueSpeed();
+  }
+
+  /** Caps the speed for a while (weapon hits). The cruise speed comes back when it ends. */
+  limitSpeed(max: number, ms: number): void {
+    clearTimeout(this.capTimer);
+    this.speedCap = Math.max(0, Math.round(max));
+    this.queueSpeed();
+    this.capTimer = setTimeout(() => {
+      this.speedCap = undefined;
+      if (this.ready) this.queueSpeed();
+    }, ms);
+  }
+
+  /** Blinks the engine light in `color`, then goes back to the car's own color. */
+  flashLights(color: string, ms: number, effect: number = LightEffect.FLASH, cyclesPer10s = 40): void {
+    clearTimeout(this.lightTimer);
+    this.send(Msg.engineColor(...hexToRgb(color), effect, cyclesPer10s));
+    this.lightTimer = setTimeout(() => {
+      if (this.ready) this.send(Msg.engineColor(...hexToRgb(this.state.color)));
+    }, ms);
   }
 
   accelerate(step = SPEED_STEP): void {
@@ -180,6 +203,13 @@ export class Car extends EventTarget {
   }
 
   // ---- Plumbing ------------------------------------------------------------
+
+  private queueSpeed(): void {
+    const target = this.state.targetSpeed;
+    const s = Math.min(target, this.speedCap ?? MAX_SPEED);
+    this.pendingSpeed = Msg.setSpeed(s, s === 0 || s < target ? BRAKE_ACCEL : DRIVE_ACCEL, this.v4);
+    void this.flush();
+  }
 
   private get v4(): boolean {
     return (this.state.version ?? 0) >= V4_SPEED_MIN_VERSION;

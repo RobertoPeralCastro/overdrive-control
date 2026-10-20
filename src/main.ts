@@ -4,11 +4,16 @@ import { SimTransport } from './sim';
 import { bluetoothAvailable, pickCar, type Transport } from './transport';
 import { setupGamepad } from './gamepad';
 import { h, icon } from './dom';
+import { Battle, MAX_ARMOR, MAX_ENERGY, WEAPONS, type Hit, type Weapon, type WeaponId } from './battle';
+import { describeTrack } from './track';
 
 const COLORS = ['#ff3b30', '#ff9f0a', '#ffd60a', '#30d158', '#64d2ff', '#0a84ff', '#bf5af2', '#ffffff'];
 const demo = new URLSearchParams(location.search).has('demo');
 
+const WEAPON_KEYS: Record<WeaponId, string> = { blaster: 'Q', missile: 'E', pulse: 'R', shield: 'F' };
+
 const cars: Car[] = [];
+const battle = new Battle();
 let selected: Car | undefined;
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -59,6 +64,7 @@ async function addCar(): Promise<void> {
 
   const car = new Car(transport);
   cars.push(car);
+  battle.add(car);
   car.addEventListener('change', () => onCarChange(car));
   select(car);
   try {
@@ -73,6 +79,7 @@ async function addCar(): Promise<void> {
 function removeCar(car: Car): void {
   void car.disconnect();
   cars.splice(cars.indexOf(car), 1);
+  battle.remove(car);
   if (selected === car) selected = cars[0];
   render();
   updateWakeLock();
@@ -87,6 +94,37 @@ function select(car: Car | undefined): void {
   selected = car;
   render();
 }
+
+// ---- Battle ---------------------------------------------------------------------
+
+function fire(car: Car, id: WeaponId): void {
+  const r = battle.fire(car, id);
+  if (!r.ok) {
+    if (r.reason !== 'Recargando') showToast(r.reason);
+    return;
+  }
+  vibrate(id === 'blaster' ? 15 : 40);
+}
+
+function scanTrack(car: Car): void {
+  if (!car.ready) return;
+  battle.scan(car);
+  showToast(`${car.state.name} está escaneando la pista: dará una vuelta y frenará`);
+}
+
+battle.addEventListener('change', () => cockpit?.updateBattle());
+battle.addEventListener('track', () => showToast(`Pista escaneada: ${describeTrack(battle.lap!)}`));
+battle.addEventListener('scanfail', () => showToast('No se pudo escanear la pista. Comprueba que el coche está sobre ella.'));
+battle.addEventListener('fire', (e) => {
+  const { shooter, weapon, hits } = (e as CustomEvent).detail as { shooter: Car; weapon: Weapon; hits: Hit[] };
+  if (!hits.length) return;
+  const text = hits
+    .map((hit) => `${hit.target.state.name}${hit.knockedOut ? ' ¡fuera de combate!' : hit.blocked ? ' (bloqueado por escudo)' : ''}`)
+    .join(', ');
+  showToast(`${weapon.name} de ${shooter.state.name} → ${text}`);
+  if (hits.some((hit) => hit.target === selected && !hit.blocked)) vibrate([80, 40, 80]);
+});
+battle.start();
 
 // ---- Rendering --------------------------------------------------------------
 
@@ -169,6 +207,12 @@ class Cockpit {
   private throttle: HTMLElement;
   private overlay: HTMLElement;
   private swatches: HTMLElement;
+  private armorFill: HTMLElement;
+  private energyFill: HTMLElement;
+  private targetLine: HTMLElement;
+  private weaponButtons = new Map<WeaponId, HTMLButtonElement>();
+  private trackText: HTMLElement;
+  private scanButton: HTMLButtonElement;
   private dragging = false;
 
   constructor(readonly car: Car) {
@@ -192,6 +236,12 @@ class Cockpit {
       COLORS.map((c) => h('button', { class: 'swatch', role: 'radio', style: `--c:${c}`, 'data-color': c, 'aria-label': `Color ${c}`, onclick: () => car.setColor(c) })),
     );
 
+    this.armorFill = h('span', { class: 'meter-fill' });
+    this.energyFill = h('span', { class: 'meter-fill' });
+    this.targetLine = h('div', { class: 'target-line' });
+    this.trackText = h('span', { class: 'track-text' });
+    this.scanButton = h('button', { class: 'btn btn-ghost btn-sm', onclick: () => scanTrack(car), title: 'El coche da una vuelta despacio para aprender la pista' }, 'Escanear pista');
+
     const hold = (fn: () => void, buzz = 15) => ({
       onpointerdown: (e: PointerEvent) => {
         e.preventDefault();
@@ -205,7 +255,22 @@ class Cockpit {
       h('div', { class: 'dash' }, [
         h('div', { class: 'gauge' }, [svg, h('div', { class: 'gauge-readout' }, [this.speedNum, h('div', { class: 'speed-unit' }, 'mm/s'), this.targetNum])]),
         h('div', { class: 'telemetry' }, [this.status, this.battery]),
+        h('div', { class: 'combat' }, [
+          h('div', { class: 'meter is-armor', 'aria-label': 'Blindaje' }, [h('span', { class: 'meter-label' }, 'Blindaje'), h('span', { class: 'meter-bar' }, this.armorFill)]),
+          h('div', { class: 'meter is-energy', 'aria-label': 'Energía' }, [h('span', { class: 'meter-label' }, 'Energía'), h('span', { class: 'meter-bar' }, this.energyFill)]),
+          this.targetLine,
+        ]),
       ]),
+      h('div', { class: 'arms' },
+        WEAPONS.map((w) => {
+          const b = h('button', { class: `weapon is-${w.id}`, 'aria-label': `${w.name} (${WEAPON_KEYS[w.id]})`, ...hold(() => fire(car, w.id), 0) }, [
+            h('span', { class: 'weapon-name' }, w.name),
+            h('span', { class: 'weapon-cost' }, `${w.energy} ⚡`),
+          ]);
+          this.weaponButtons.set(w.id, b);
+          return b;
+        }),
+      ),
       h('div', { class: 'steer' }, [
         h('button', { class: 'btn-pad lane', 'aria-label': 'Carril izquierdo (A)', ...hold(() => car.laneLeft()) }, [icon('left'), h('span', {}, 'Carril')]),
         h('button', { class: 'btn-pad lane', 'aria-label': 'Carril derecho (D)', ...hold(() => car.laneRight()) }, [icon('right'), h('span', {}, 'Carril')]),
@@ -221,6 +286,7 @@ class Cockpit {
       h('button', { class: 'btn-pad brake', 'aria-label': 'Frenar (Espacio)', ...hold(() => car.brake(), 60) }, 'FRENO'),
       h('div', { class: 'car-footer' }, [
         this.swatches,
+        h('div', { class: 'track-info' }, [this.trackText, this.scanButton]),
         h('button', { class: 'btn btn-ghost btn-sm', onclick: () => removeCar(car) }, 'Desconectar'),
       ]),
       this.overlay,
@@ -249,6 +315,8 @@ class Cockpit {
 
     this.swatches.querySelectorAll<HTMLElement>('.swatch').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.color === s.color)));
 
+    this.updateBattle();
+
     const blocked = s.status !== 'ready';
     this.el.classList.toggle('is-blocked', blocked);
     this.overlay.replaceChildren(
@@ -267,6 +335,38 @@ class Cockpit {
           ]
         : []),
     );
+  }
+
+  /** Armor, energy, cooldowns, target and track. Runs ~10 times a second. */
+  updateBattle(): void {
+    const f = battle.fighter(this.car);
+    if (!f) return;
+    const now = performance.now();
+    const down = f.downUntil > now;
+    this.armorFill.style.width = `${(f.armor / MAX_ARMOR) * 100}%`;
+    this.energyFill.style.width = `${(f.energy / MAX_ENERGY) * 100}%`;
+    this.el.classList.toggle('is-down', down);
+    this.el.classList.toggle('is-shielded', f.shieldUntil > now);
+
+    for (const w of WEAPONS) {
+      const b = this.weaponButtons.get(w.id)!;
+      const cooling = Math.max(0, f.readyAt[w.id] - now) / w.cooldownMs;
+      b.style.setProperty('--cd', cooling.toFixed(3));
+      b.classList.toggle('is-off', down || f.energy < w.energy || cooling > 0);
+    }
+
+    const target = battle.targetFor(this.car);
+    let text: string;
+    if (down) text = `¡Fuera de combate! ${Math.ceil((f.downUntil - now) / 1000)} s`;
+    else if (battle.scanning === this.car) text = 'Escaneando pista…';
+    else if (target) text = `Objetivo: ${target.car.state.name} · ${target.pieces === 0 ? 'a tu lado' : `${target.pieces} ${target.pieces === 1 ? 'pieza' : 'piezas'} delante`}`;
+    else text = cars.length > 1 ? 'Sin objetivo a tiro' : 'Conecta otro coche para combatir';
+    this.targetLine.textContent = `${text}${f.kills ? ` · Derribos: ${f.kills}` : ''}`;
+    this.targetLine.classList.toggle('has-target', !!target && !down);
+
+    this.trackText.textContent = battle.lap ? `Pista: ${describeTrack(battle.lap)}` : battle.scanning ? 'Escaneando pista…' : 'Pista sin escanear';
+    this.scanButton.disabled = !!battle.scanning;
+    this.scanButton.textContent = battle.lap ? 'Volver a escanear' : 'Escanear pista';
   }
 
   /** Vertical slider: drag anywhere on it to set the cruise speed; it stays where you leave it. */
@@ -337,7 +437,7 @@ function statusText(s: Car['state']): string {
 // ---- Input --------------------------------------------------------------------
 
 window.addEventListener('keydown', (e) => {
-  if (e.repeat && !['KeyW', 'KeyS', 'ArrowUp', 'ArrowDown'].includes(e.code)) return;
+  if (e.repeat && !['KeyW', 'KeyS', 'ArrowUp', 'ArrowDown', 'KeyQ'].includes(e.code)) return;
   if (e.target instanceof HTMLInputElement) return;
   if (e.code === 'Escape') return stopAll();
   const n = Number(e.key);
@@ -355,6 +455,10 @@ window.addEventListener('keydown', (e) => {
     ArrowRight: () => car.laneRight(),
     Space: () => car.brake(),
     KeyU: () => car.uTurn(),
+    KeyQ: () => fire(car, 'blaster'),
+    KeyE: () => fire(car, 'missile'),
+    KeyR: () => fire(car, 'pulse'),
+    KeyF: () => fire(car, 'shield'),
   };
   const action = actions[e.code];
   if (action) {
@@ -363,7 +467,7 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
-setupGamepad(() => (selected?.ready ? selected : undefined), (msg) => showToast(msg));
+setupGamepad(() => (selected?.ready ? selected : undefined), (msg) => showToast(msg), fire);
 
 // ---- Misc ------------------------------------------------------------------------
 

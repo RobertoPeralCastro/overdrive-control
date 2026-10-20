@@ -107,7 +107,7 @@ export const Msg = {
   },
 
   /** Steady engine color. r/g/b are 0..255 and get scaled to the firmware's 0..14 range. */
-  engineColor(r: number, g: number, b: number): Uint8Array {
+  engineColor(r: number, g: number, b: number, effect: number = LightEffect.STEADY, cyclesPer10s = 0): Uint8Array {
     const entries: [number, number][] = [
       [LightChannel.RED, r],
       [LightChannel.GREEN, g],
@@ -119,10 +119,11 @@ export const Msg = {
         const o = 1 + i * 5;
         const level = Math.round((Math.max(0, Math.min(255, value)) / 255) * MAX_LIGHT_INTENSITY);
         v.setUint8(o, channel);
-        v.setUint8(o + 1, LightEffect.STEADY);
-        v.setUint8(o + 2, level);
+        v.setUint8(o + 1, effect);
+        // Non-steady effects (flash, throb) swing from off to `level` cyclesPer10s times every 10 s.
+        v.setUint8(o + 2, effect === LightEffect.STEADY ? level : 0);
         v.setUint8(o + 3, level);
-        v.setUint8(o + 4, 0);
+        v.setUint8(o + 4, cyclesPer10s);
       });
     });
   },

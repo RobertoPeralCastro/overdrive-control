@@ -20,7 +20,26 @@ El protocolo está portado de [OpenOverdrive](https://github.com/dschwen/OpenOve
 | Frenar            | FRENO               | Espacio          | LT o B          |
 | Carril izq./der.  | ‹ Carril / Carril › | A / D, ← / →     | LB / RB, cruceta|
 | Media vuelta      | Media vuelta        | U                | Y               |
+| Láser / Misil     | Botones de armas    | Q / E            | A / X           |
+| Pulso / Escudo    | Botones de armas    | R / F            | L3 / R3         |
 | Frenar todos      | STOP                | Esc              | —               |
+
+### Armas y escaneo de pista
+
+Como en la app oficial, las armas son virtuales: la app calcula los impactos y el coche alcanzado
+parpadea en rojo y frena un momento. Con el blindaje a 0 queda **fuera de combate** 3 s y vuelve con todo.
+
+| Arma   | Energía | Alcance                          | Efecto                                   |
+|--------|---------|----------------------------------|------------------------------------------|
+| Láser  | 8       | 1 pieza por delante              | −8 blindaje, frena un poco 0,5 s         |
+| Misil  | 35      | 3 piezas por delante             | −30 blindaje, frena fuerte 1,5 s         |
+| Pulso  | 50      | 1 pieza, delante y detrás, a todos | −10 blindaje, casi para 2,5 s          |
+| Escudo | 30      | —                                | Bloquea todo durante 3 s                 |
+
+La energía se recarga sola. Para saber quién va delante la app necesita conocer el orden de las piezas:
+pulsa **Escanear pista** y el coche dará una vuelta despacio y frenará en la línea de salida. Si no lo
+haces, la app aprende la pista igualmente mientras conduces (en pistas sin pieza de salida tarda dos vueltas).
+Hasta entonces solo se puede alcanzar a un coche que esté en el mismo tipo de pieza.
 | Cambiar de coche  | Pestañas            | 1–9              | —               |
 
 ## Dónde funciona
@@ -62,6 +81,8 @@ src/
   transport.ts  Conexión Web Bluetooth (GATT, notificaciones, reintentos)
   sim.ts        Coche simulado para el modo demo
   car.ts        Lógica de un coche: handshake, cola de escritura, velocidad, carriles, reconexión
+  track.ts      Aprende el orden de las piezas de la pista (escaneo)
+  battle.ts     Armas virtuales: blindaje, energía, objetivos e impactos
   gamepad.ts    Soporte de mando
   main.ts       Interfaz (TypeScript sin framework)
 tests/          Tests de bytes del protocolo y del comportamiento de Car

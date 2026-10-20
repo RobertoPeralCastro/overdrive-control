@@ -3,6 +3,8 @@ import type { Transport } from './transport';
 
 let simCount = 0;
 const SIM_MODELS = [9, 10, 8, 11];
+/** Piece IDs of a 12-piece oval: start line (33, finish section 34), straights and curves. */
+const SIM_TRACK = [33, 36, 17, 18, 39, 20, 23, 40, 17, 18, 36, 34];
 
 /** Fake car that speaks the protocol, for trying the UI without hardware (?demo). */
 export class SimTransport implements Transport {
@@ -79,7 +81,7 @@ export class SimTransport implements Transport {
     if (tick % 3 === 0 && this.speed > 10) {
       const p = new DataView(new ArrayBuffer(8));
       p.setUint8(0, this.piece * 3);
-      p.setUint8(1, [17, 18, 20, 23, 36, 39, 40][this.piece % 7]);
+      p.setUint8(1, SIM_TRACK[this.piece]);
       p.setFloat32(2, this.offset, true);
       p.setUint16(6, Math.round(this.speed), true);
       this.emit(MsgId.V2C_LOC_POS, [...new Uint8Array(p.buffer)]);

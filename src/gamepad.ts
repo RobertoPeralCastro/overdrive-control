@@ -1,10 +1,12 @@
 import { MAX_SPEED, type Car } from './car';
+import type { WeaponId } from './battle';
 
 /**
  * Standard-mapping gamepad (Xbox/PlayStation layout):
- * RT = throttle, LT or B = brake, LB/RB or D-pad = lane change, Y = U-turn.
+ * RT = throttle, LT or B = brake, LB/RB or D-pad = lane change, Y = U-turn,
+ * A = laser, X = missile, L3 = pulse, R3 = shield.
  */
-export function setupGamepad(getCar: () => Car | undefined, notify: (msg: string) => void): void {
+export function setupGamepad(getCar: () => Car | undefined, notify: (msg: string) => void, fire: (car: Car, weapon: WeaponId) => void): void {
   if (!('getGamepads' in navigator)) return;
   let running = false;
   let prev: boolean[] = [];
@@ -41,6 +43,10 @@ export function setupGamepad(getCar: () => Car | undefined, notify: (msg: string
       if (edge(12)) car.accelerate();
       if (edge(13)) car.decelerate();
       if (edge(3)) car.uTurn();
+      if (edge(0)) fire(car, 'blaster');
+      if (edge(2)) fire(car, 'missile');
+      if (edge(10)) fire(car, 'pulse');
+      if (edge(11)) fire(car, 'shield');
     }
     prev = pressed;
     requestAnimationFrame(poll);
