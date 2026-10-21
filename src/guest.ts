@@ -7,7 +7,7 @@ import { RaceHud } from './hud';
 import { RaceStrip } from './racestrip';
 import { awardsList } from './screens';
 import { GuestSession, guestModel, type GuestEvent, type RaceSummary } from './remote';
-import { errText, keepAwake, showToast, toastElement } from './shell';
+import { browserBanner, errText, keepAwake, showToast, toastElement } from './shell';
 import { SimTransport } from './sim';
 import { TiltSteer } from './tilt';
 import { sound, type SoundName } from './sound';
@@ -44,6 +44,7 @@ export function startGuest(rawCode: string, demo: boolean): void {
         h('button', { class: 'btn btn-stop', onclick: () => session?.control.brake(), title: 'Frenar mi coche (Esc)' }, 'STOP'),
       ]),
     ]),
+    ...[browserBanner(demo || bluetoothAvailable())].filter((x): x is HTMLElement => !!x),
     main,
     toastElement(),
     sheet,

@@ -65,6 +65,48 @@ export function leaveLandscape(): void {
   }
 }
 
+/** Browsers built into other apps (LinkedIn, Facebook, Instagram…), which have no Web Bluetooth. */
+function inAppBrowser(): string | undefined {
+  const ua = navigator.userAgent;
+  if (/LinkedInApp/i.test(ua)) return 'LinkedIn';
+  if (/FBAN|FBAV|FB_IAB/i.test(ua)) return 'Facebook';
+  if (/Instagram/i.test(ua)) return 'Instagram';
+  if (/Twitter/i.test(ua)) return 'X';
+  if (/WhatsApp/i.test(ua)) return 'WhatsApp';
+  if (/; wv\)/.test(ua)) return 'otra app';
+  return undefined;
+}
+
+/**
+ * A banner for browsers that can't reach the cars, saying where to open the app instead. On
+ * Android it opens Chrome straight away (links from LinkedIn and the like land in their own browser).
+ */
+export function browserBanner(hasBluetooth: boolean): HTMLElement | null {
+  if (hasBluetooth) return null;
+  const app = inAppBrowser();
+  const android = /Android/i.test(navigator.userAgent);
+  const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const here = location.host + location.pathname + location.search;
+  const chrome = `intent://${here}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(location.href)};end`;
+  const demo = location.pathname + '?demo';
+  const text = app
+    ? `Estás en el navegador de ${app}, que no puede conectar con los coches por Bluetooth.`
+    : 'Este navegador no puede conectar con los coches por Bluetooth.';
+  const how = android
+    ? 'Ábrela en Chrome:'
+    : ios
+      ? 'En iPhone, copia el enlace y ábrelo en el navegador gratuito Bluefy.'
+      : 'Ábrela en Chrome o Edge.';
+  return h('div', { class: 'browser-banner', role: 'alert' }, [
+    h('p', {}, [h('strong', {}, text), ' ', how]),
+    h('div', { class: 'browser-banner-actions' }, [
+      android ? h('a', { class: 'btn btn-primary btn-sm', href: chrome }, 'Abrir en Chrome') : null,
+      ios ? h('button', { class: 'btn btn-primary btn-sm', onclick: () => void navigator.clipboard?.writeText(location.href).then(() => showToast('Enlace copiado')) }, 'Copiar enlace') : null,
+      h('a', { class: 'btn btn-ghost btn-sm', href: demo }, 'Probar la demo'),
+    ]),
+  ]);
+}
+
 export function errText(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }

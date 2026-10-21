@@ -1137,6 +1137,27 @@ body:has(.hud) .titlebar {
   animation: none;
 }
 
+/* Opened inside LinkedIn & co., or a browser without Bluetooth: say where to open it */
+.browser-banner {
+  margin: 0 16px 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent-2) 55%, transparent);
+  background: color-mix(in srgb, var(--accent-2) 12%, #0b0d12);
+}
+.browser-banner p {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+}
+.browser-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+body:has(.hud) .browser-banner {
+  display: none;
+}
+
 /* During the race, messages go top centre, clear of pedals and speed */
 body:has(.hud) .toast {
   top: calc(62px + env(safe-area-inset-top));

@@ -13,7 +13,7 @@ import { CampaignRun, LEVELS, type Level } from './campaign';
 import { RaceHud, type HudModel } from './hud';
 import { CampaignScreen, CarsScreen, HomeScreen, TrackScreen, awardsList, standingsList, type ScreenDeps } from './screens';
 import { GuestLink, type Action, type GuestEvent, type RaceSummary, type RemoteTransport, type Snapshot } from './remote';
-import { errText, goLandscape, keepAwake, leaveLandscape, showToast, toastElement } from './shell';
+import { browserBanner, errText, goLandscape, keepAwake, leaveLandscape, showToast, toastElement } from './shell';
 import { SimTransport } from './sim';
 import { RaceRecorder, loadRecords } from './stats';
 import { TiltSteer } from './tilt';
@@ -69,6 +69,7 @@ app.append(
       h('button', { class: 'btn btn-stop', onclick: stopAll, title: 'Frenar todos los coches (Esc)' }, 'STOP'),
     ]),
   ]),
+  ...[browserBanner(demo || bluetoothAvailable())].filter((x): x is HTMLElement => !!x),
   titlebar,
   stage,
   toastElement(),
