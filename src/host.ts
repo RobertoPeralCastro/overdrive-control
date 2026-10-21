@@ -554,7 +554,29 @@ const pads = new Gamepads({
     showToast(msg);
     render();
   },
+  pressed: (index) => screen === 'cars' && whichPad(index),
 });
+
+/** In the garage, a button on a pad blinks its car, shakes the pad and lights up the car's card. */
+const padCalledAt = new Map<number, number>();
+function whichPad(index: number): void {
+  const now = performance.now();
+  if (now - (padCalledAt.get(index) ?? -Infinity) < 1500) return;
+  padCalledAt.set(index, now);
+  pads.rumble(index);
+  const car = race.carForPad(index);
+  if (!car) return showToast(`🎮 Mando ${index + 1} sin coche: elígelo como piloto en la tarjeta de un coche`);
+  if (car.ready) car.identify();
+  carsScreen.highlight(car, `🎮 Mando ${index + 1}`);
+  showToast(`🎮 Mando ${index + 1} conduce a ${car.state.name}`);
+}
+
+/** «Identificar»: the car blinks, and the pad that drives it shakes. */
+function identify(car: Car): void {
+  car.identify();
+  const d = race.driverOf(car);
+  if (d.kind === 'pad') pads.rumble(d.index, 800);
+}
 
 // ---- Screens ----------------------------------------------------------------------------
 
@@ -575,6 +597,7 @@ const deps: ScreenDeps = {
   back: () => goBack(),
   campaign: () => go('campaign'),
   garage: () => go('cars'),
+  identify,
   playLevel,
 };
 const homeScreen = new HomeScreen(deps);

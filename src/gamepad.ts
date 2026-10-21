@@ -19,6 +19,8 @@ export interface PadHooks {
   start(): void;
   stopAll(): void;
   notify(msg: string): void;
+  /** Any button of pad `index` was just pressed (to tell which pad is which). */
+  pressed?(index: number): void;
 }
 
 export interface PadInfo {
@@ -61,6 +63,12 @@ export class Gamepads extends EventTarget {
     return navigator.getGamepads().flatMap((p) => (p ? [{ index: p.index, name: padName(p) }] : []));
   }
 
+  /** Shakes pad `index`, if it can, so the player knows which one it is. */
+  rumble(index: number, ms = 400): void {
+    const pad = navigator.getGamepads?.()[index] as (Gamepad & { vibrationActuator?: { playEffect?: (type: string, params: object) => Promise<unknown> } }) | null;
+    void pad?.vibrationActuator?.playEffect?.('dual-rumble', { duration: ms, strongMagnitude: 1, weakMagnitude: 1 }).catch(() => {});
+  }
+
   private poll(): void {
     const pads = navigator.getGamepads().filter((p): p is Gamepad => !!p);
     if (!pads.length) {
@@ -79,6 +87,7 @@ export class Gamepads extends EventTarget {
     const stickX = pad.axes[0] ?? 0;
     const car = this.hooks.carFor(pad.index);
 
+    if (pressed.some((_, i) => edge(i))) this.hooks.pressed?.(pad.index);
     if (edge(9)) this.hooks.start();
     if (edge(8)) this.hooks.stopAll();
     if (car?.ready) {

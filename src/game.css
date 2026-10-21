@@ -385,6 +385,27 @@ body:has(.home) .topbar .brand {
   border-top: 4px solid var(--car);
   background: linear-gradient(180deg, color-mix(in srgb, var(--car) 16%, #141927), #0f131e 60%);
 }
+/* A pad button was pressed in the garage: light up the card of the car it drives */
+.car-card.is-called {
+  position: relative;
+  border-color: var(--accent-2);
+  box-shadow: 0 0 0 3px var(--accent-2), 0 0 32px color-mix(in srgb, var(--accent-2) 55%, transparent);
+}
+.car-card.is-called::before {
+  content: attr(data-called);
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%) skewX(-10deg);
+  z-index: 1;
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: var(--accent-2);
+  color: #111;
+  font-family: var(--display);
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
 .car-card .avatar {
   justify-self: center;
   width: 128px;

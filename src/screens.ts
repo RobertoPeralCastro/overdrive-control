@@ -37,6 +37,8 @@ export interface ScreenDeps {
   back(): void;
   campaign(): void;
   garage(): void;
+  /** Blinks the car and shakes the pad that drives it. */
+  identify(car: Car): void;
   playLevel(level: Level): void;
 }
 
@@ -101,6 +103,8 @@ export class CarsScreen {
   readonly el: HTMLElement;
   private list: HTMLElement;
   private padsLine: HTMLElement;
+  private calledTimer?: ReturnType<typeof setTimeout>;
+  private called?: { id: string; label: string };
   private nextBtn: HTMLButtonElement;
 
   constructor(private d: ScreenDeps) {
@@ -150,6 +154,19 @@ export class CarsScreen {
     this.nextBtn.disabled = !cars.some((c) => c.ready);
   }
 
+  /** Brings `car`'s card into view and lights it up with `label` (e.g. the pad that drives it). */
+  highlight(car: Car, label: string): void {
+    // Kept here, not only on the element: the cards are rebuilt whenever a car changes.
+    this.called = { id: car.id, label };
+    clearTimeout(this.calledTimer);
+    this.calledTimer = setTimeout(() => {
+      this.called = undefined;
+      this.update();
+    }, 2500);
+    this.update();
+    this.list.querySelector(`[data-car="${CSS.escape(car.id)}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }
+
   private card(car: Car): HTMLElement {
     const s = car.state;
     const { race } = this.d;
@@ -161,7 +178,8 @@ export class CarsScreen {
     });
     const guest = this.d.isGuestCar(car);
     const select = driverSelect(race, car, this.d.pads, race.live);
-    return h('article', { class: `car-card is-${s.status}`, style: `--car:${s.color}` }, [
+    const called = this.called?.id === car.id ? this.called.label : undefined;
+    return h('article', { class: `car-card is-${s.status}${called ? ' is-called' : ''}`, style: `--car:${s.color}`, 'data-car': car.id, ...(called ? { 'data-called': called } : {}) }, [
       avatar,
       h('div', { class: 'car-card-main' }, [
         h('div', { class: 'car-card-title' }, [
@@ -180,7 +198,7 @@ export class CarsScreen {
           }),
         ),
         h('div', { class: 'car-card-actions' }, [
-          btn('Identificar', () => car.ready && car.identify(), !car.ready),
+          btn('Identificar', () => car.ready && this.d.identify(car), !car.ready),
           btn('Conducir', () => this.d.drive(car), !car.ready || guest),
           btn(guest ? 'Expulsar' : 'Quitar', () => this.d.removeCar(car), false),
         ]),
