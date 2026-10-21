@@ -1,6 +1,6 @@
 import qrcode from 'qrcode-generator';
 import { Battle, WEAPONS, type FireDetail, type WeaponId } from './battle';
-import { Car } from './car';
+import { Car, carPlace, type CarPlace } from './car';
 import { Cockpit, REPEAT_KEYS, keyAction, targetText, vibrate, type CockpitModel, type CombatView } from './cockpit';
 import { h } from './dom';
 import { Field } from './field';
@@ -232,11 +232,12 @@ function startRace(): void {
   // This tap is our chance to get the motion sensor for tilt steering once the race starts,
   // and to go full screen in landscape: the phone is held like a steering wheel.
   TiltSteer.prime();
-  if (myRacerFor(cars)) void goLandscape();
   const why = race.blocker(cars);
   if (why) return showToast(why);
+  if (myRacerFor(cars)) void goLandscape();
   race.start(cars);
-  announce('Los coches van a la línea de salida…');
+  const off = cars.filter((c) => carPlace(c.state) === 'off');
+  announce(off.length ? `⚠️ ${off.map((c) => c.state.name).join(' y ')} parece fuera de la pista: ponlo sobre ella` : 'Los coches van a la línea de salida…');
   go('race');
 }
 
@@ -860,7 +861,24 @@ function renderStandings(): void {
   );
 }
 
+/** Where each car was last time, to tell the players when one leaves the track or goes to charge. */
+const places = new WeakMap<Car, CarPlace>();
+
+function notePlace(car: Car): void {
+  const now = carPlace(car.state);
+  const before = places.get(car) ?? 'unknown';
+  places.set(car, now);
+  if (now === before || now === 'unknown') return;
+  const name = car.state.name;
+  if (now === 'off') {
+    announce(`⚠️ ${name} se ha salido de la pista`);
+    buzz(car, [200, 100, 200]);
+  } else if (now === 'charger') announce(`🔌 ${name} está en el cargador`);
+  else if (before === 'off' || before === 'charger') announce(`✅ ${name} vuelve a estar en la pista`);
+}
+
 function onCarChange(car: Car): void {
+  notePlace(car);
   if (cockpitCar === car) cockpit?.update();
   if (hudCar === car) hud?.update();
   if (isGuestCar(car)) renderInvite();

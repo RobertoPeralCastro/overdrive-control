@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Msg, MsgId, TurnType, batteryPercent, parseMessage } from '../src/protocol';
-import { Car } from '../src/car';
+import { Car, carPlace, placeText } from '../src/car';
 import type { Transport } from '../src/transport';
 
 const bytes = (u: Uint8Array) => [...u];
@@ -64,6 +64,10 @@ describe('parsing', () => {
       lowBattery: false,
       chargedBattery: true,
     });
+  });
+
+  it('delocalized (off the track)', () => {
+    expect(parseMessage(view([1, MsgId.V2C_DELOCALIZED]))).toEqual({ type: 'delocalized' });
   });
 
   it('rejects truncated and unknown packets', () => {
@@ -139,6 +143,24 @@ describe('Car', () => {
     car.brake();
     await idle();
     expect(t.written).toEqual([bytes(Msg.setSpeed(0, 30000, true))]);
+    await car.disconnect();
+  });
+
+  it('knows when it is charging, on the track or off it', async () => {
+    const t = new FakeTransport();
+    const car = new Car(t);
+    await car.connect();
+    expect(carPlace(car.state)).toBe('unknown');
+    t.onMessage(view([5, MsgId.V2C_STATUS, 0, 1, 0, 0]));
+    expect(carPlace(car.state)).toBe('charger');
+    expect(placeText(car.state)).toMatch(/Cargando/);
+    t.onMessage(view([5, MsgId.V2C_STATUS, 1, 0, 0, 0]));
+    expect(carPlace(car.state)).toBe('track');
+    t.onMessage(view([1, MsgId.V2C_DELOCALIZED]));
+    expect(carPlace(car.state)).toBe('off');
+    // Driving again over the codes puts it back on the track.
+    t.onMessage(view([3, MsgId.V2C_LOC_TRANS, 4, 3]));
+    expect(carPlace(car.state)).toBe('track');
     await car.disconnect();
   });
 });

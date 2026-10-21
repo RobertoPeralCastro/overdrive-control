@@ -1,5 +1,5 @@
 import { MAX_ARMOR, MAX_ENERGY, WEAPONS, type WeaponId } from './battle';
-import { MAX_SPEED } from './car';
+import { MAX_SPEED, carPlace } from './car';
 import { vibrate, type CockpitModel } from './cockpit';
 import { h } from './dom';
 import { MapView } from './mapview';
@@ -202,6 +202,12 @@ export class RaceHud {
       }
       if (f.downMs > 0) this.showCount('FUERA DE COMBATE', 0, true);
     }
+    // Off the track or on the charger: the car can't race until it's back on the track.
+    const place = carPlace(s);
+    this.el.classList.toggle('is-off-track', place === 'off');
+    if (place === 'off') this.showCount('¡FUERA DE PISTA! Vuelve a ponerlo', 0, true);
+    else if (place === 'charger') this.showCount('EN EL CARGADOR', 0, true);
+
     const t = m.target();
     this.target.textContent = t.hot ? `🎯 ${t.text.replace('Objetivo: ', '')}` : '';
 

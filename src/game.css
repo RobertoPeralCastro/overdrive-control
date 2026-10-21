@@ -1137,6 +1137,52 @@ body:has(.hud) .titlebar {
   animation: none;
 }
 
+/* Where a car is: on the track, charging or off the track */
+.car-place {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: rgb(255 255 255 / 0.06);
+  border: 1px solid #36405f;
+  color: var(--muted);
+}
+.car-place.is-track {
+  color: #7dffb0;
+  border-color: rgb(48 209 88 / 0.5);
+  background: rgb(48 209 88 / 0.1);
+}
+.car-place.is-charger {
+  color: #8fd8ff;
+  border-color: rgb(10 132 255 / 0.5);
+  background: rgb(10 132 255 / 0.12);
+}
+.car-place.is-off {
+  color: #ffb4a8;
+  border-color: rgb(255 59 48 / 0.6);
+  background: rgb(255 59 48 / 0.14);
+  animation: place-blink 1.2s ease-in-out infinite;
+}
+@keyframes place-blink {
+  50% {
+    opacity: 0.55;
+  }
+}
+.hero-car .car-place {
+  align-self: center;
+}
+.hud.is-off-track::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 4px rgb(255 59 48 / 0.8), inset 0 0 80px rgb(255 59 48 / 0.35);
+  animation: place-blink 1.2s ease-in-out infinite;
+}
+
 /* Opened inside LinkedIn & co., or a browser without Bluetooth: say where to open it */
 .browser-banner {
   margin: 0 16px 10px;

@@ -25,10 +25,37 @@ export interface CarState {
   onTrack?: boolean;
   onCharger?: boolean;
   lowBattery?: boolean;
+  chargedBattery?: boolean;
   pieceId?: number;
   offset?: number;
   color: string;
   error?: string;
+}
+
+/** Where a connected car is, from what it reports: on the charger, on the track or off it. */
+export type CarPlace = 'charger' | 'track' | 'off' | 'unknown';
+
+export function carPlace(s: CarState): CarPlace {
+  if (s.status !== 'ready') return 'unknown';
+  if (s.onCharger) return 'charger';
+  if (s.onTrack === true) return 'track';
+  if (s.onTrack === false) return 'off';
+  return 'unknown';
+}
+
+/** A short label for the car's place, with its battery. */
+export function placeText(s: CarState): string {
+  const pct = s.battery !== undefined ? ` · ${s.battery}%` : '';
+  switch (carPlace(s)) {
+    case 'charger':
+      return s.chargedBattery ? `🔌 Cargado${pct}` : `🔌 Cargando${pct}`;
+    case 'track':
+      return `🛣️ En la pista${pct}`;
+    case 'off':
+      return `⚠️ Fuera de la pista${pct}`;
+    default:
+      return s.status === 'ready' ? `Listo${pct}` : '';
+  }
 }
 
 const PALETTE = ['#ff3b30', '#0a84ff', '#30d158', '#ffd60a', '#bf5af2', '#ff9f0a'];
@@ -259,8 +286,14 @@ export class Car extends EventTarget {
       case 'position':
         this.update({ speed: msg.speed, pieceId: msg.pieceId, offset: msg.offset, onTrack: true });
         break;
+      case 'transition':
+        if (!this.state.onTrack) this.update({ onTrack: true });
+        break;
       case 'status':
-        this.update({ onTrack: msg.onTrack, onCharger: msg.onCharger, lowBattery: msg.lowBattery });
+        this.update({ onTrack: msg.onTrack, onCharger: msg.onCharger, lowBattery: msg.lowBattery, chargedBattery: msg.chargedBattery });
+        break;
+      case 'delocalized':
+        this.update({ onTrack: false, speed: 0 });
         break;
     }
     this.dispatchEvent(new CustomEvent('message', { detail: msg }));

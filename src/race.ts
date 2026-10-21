@@ -1,6 +1,6 @@
 import { AiDriver, type AiLevel, type AiMove } from './ai';
 import type { Battle } from './battle';
-import type { Car } from './car';
+import { carPlace, type Car } from './car';
 import type { MoveDetail } from './field';
 
 /**
@@ -98,6 +98,8 @@ export class Race extends EventTarget {
     if (this.live) return 'La carrera ya está en marcha';
     if (!this.battle.field.lap) return 'Primero escanea la pista';
     if (!cars.some((c) => c.ready)) return 'No hay coches conectados';
+    const charging = cars.find((c) => c.ready && carPlace(c.state) === 'charger');
+    if (charging) return `${charging.state.name} está en el cargador: ponlo en la pista`;
     return undefined;
   }
 

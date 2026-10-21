@@ -23,6 +23,8 @@ export const MsgId = {
   C2V_CANCEL_LANE: 0x26,
   V2C_LOC_POS: 0x27,
   V2C_LOC_TRANS: 0x29,
+  /** The car lost the track codes: lifted, crashed off or driving on the floor. */
+  V2C_DELOCALIZED: 0x2b,
   C2V_SET_OFFSET: 0x2c,
   C2V_TURN: 0x32,
   C2V_LIGHTS_PATTERN: 0x33,
@@ -141,7 +143,8 @@ export type VehicleMessage =
   | { type: 'ping' }
   | { type: 'position'; locationId: number; pieceId: number; offset: number; speed: number }
   | { type: 'transition'; pieceIdx: number; prevPieceIdx: number; offset?: number; leftWheelCm?: number; rightWheelCm?: number }
-  | { type: 'status'; onTrack: boolean; onCharger: boolean; lowBattery: boolean; chargedBattery: boolean };
+  | { type: 'status'; onTrack: boolean; onCharger: boolean; lowBattery: boolean; chargedBattery: boolean }
+  | { type: 'delocalized' };
 
 /** Some firmware reports millivolts (≈3300..4200), others a plain percentage. */
 export function batteryPercent(raw: number): number {
@@ -188,6 +191,8 @@ export function parseMessage(data: DataView): VehicleMessage | null {
         leftWheelCm: remaining >= 16 ? data.getUint8(at + 14) : undefined,
         rightWheelCm: remaining >= 16 ? data.getUint8(at + 15) : undefined,
       };
+    case MsgId.V2C_DELOCALIZED:
+      return { type: 'delocalized' };
     case MsgId.V2C_STATUS:
       if (remaining < 4) return null;
       return {

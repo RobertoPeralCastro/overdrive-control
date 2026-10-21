@@ -2,7 +2,7 @@ import { AI_LEVELS, type AiLevel, type AiMove } from './ai';
 import { avatarFor, pickAvatar } from './avatars';
 import { LEVELS, completedLevels, isUnlocked, type Level } from './campaign';
 import type { Battle } from './battle';
-import type { Car } from './car';
+import { carPlace, placeText, type Car } from './car';
 import { COLORS } from './cockpit';
 import { h, icon } from './dom';
 import type { Gamepads } from './gamepad';
@@ -76,7 +76,9 @@ export class HomeScreen {
           h('img', { src: avatarFor(mine.id, mine.state.name, mine.state.color), alt: '' }),
         ]),
         h('div', { class: 'hero-name' }, mine.state.name),
-        h('div', { class: 'hero-stats' }, rec?.races ? `🏆 ${rec.wins} · ${rec.races} carreras · ⚡ ${fmtSpeed(rec.topSpeed)}` : mine.ready ? 'Listo para correr' : 'Conectando…'),
+        mine.ready && ['charger', 'off'].includes(carPlace(mine.state))
+          ? h('div', { class: `car-place is-${carPlace(mine.state)}` }, placeText(mine.state))
+          : h('div', { class: 'hero-stats' }, rec?.races ? `🏆 ${rec.wins} · ${rec.races} carreras · ⚡ ${fmtSpeed(rec.topSpeed)}` : mine.ready ? 'Listo para correr' : 'Conectando…'),
       );
     } else {
       this.hero.replaceChildren(
@@ -165,10 +167,9 @@ export class CarsScreen {
         h('div', { class: 'car-card-title' }, [
           h('span', { class: 'chip-dot' }),
           h('strong', {}, `${guest ? '📱 ' : ''}${s.name}`),
-          h('span', { class: 'car-card-meta' }, [
-            s.status === 'ready' ? (s.battery !== undefined ? `${s.battery}%` : '') : s.status === 'disconnected' ? 'desconectado' : 'conectando…',
-          ]),
+          h('span', { class: 'car-card-meta' }, s.status === 'ready' ? '' : s.status === 'disconnected' ? 'desconectado' : 'conectando…'),
         ]),
+        s.status === 'ready' ? h('div', { class: `car-place is-${carPlace(s)}` }, placeText(s)) : null,
         recordLine(car),
         select,
         h('div', { class: 'card-swatches', role: 'radiogroup', 'aria-label': 'Color' },
