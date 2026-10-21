@@ -409,6 +409,21 @@ describe('Race', () => {
     expect(race.blocker([car])).toBe('Primero escanea la pista');
   });
 
+  it('does not start while a car is off the track or charging', async () => {
+    const { race, a, b } = await grid();
+    const say = (t: FakeTransport, bytes: number[]) => t.onMessage(new DataView(new Uint8Array(bytes).buffer));
+    expect(race.blocker([a.car, b.car])).toBeUndefined();
+    say(a.t, [1, 0x2b]); // delocalized: lifted or crashed off
+    expect(race.blocker([a.car, b.car])).toBe(`${a.car.state.name} está fuera de la pista: ponlo sobre ella`);
+    say(b.t, [5, 0x3f, 0, 1, 0, 0]); // on the charger
+    expect(race.blocker([a.car, b.car])).toMatch(/en el cargador/);
+    say(b.t, [5, 0x3f, 1, 0, 0, 0]);
+    say(a.t, [5, 0x3f, 1, 0, 0, 0]); // both back on the track
+    expect(race.blocker([a.car, b.car])).toBeUndefined();
+    race.start([a.car, b.car]);
+    expect(race.live).toBe(true);
+  });
+
   it('a pad drives only one car', async () => {
     const { race, a, b } = await grid();
     race.setDriver(a.car, { kind: 'pad', index: 0 });

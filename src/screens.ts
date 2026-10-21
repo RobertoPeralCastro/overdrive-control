@@ -201,6 +201,7 @@ export class TrackScreen {
   private soundBtn: HTMLButtonElement;
   private startBtn: HTMLButtonElement;
   private campaignBtn: HTMLButtonElement;
+  private whyEl = h('p', { class: 'start-why', role: 'status', hidden: '' });
   private scanCar?: Car;
 
   constructor(private d: ScreenDeps) {
@@ -231,6 +232,7 @@ export class TrackScreen {
         this.weaponsBtn,
         this.soundBtn,
       ]),
+      this.whyEl,
       h('footer', { class: 'screen-foot' }, [this.campaignBtn, this.startBtn]),
     ]);
   }
@@ -267,6 +269,9 @@ export class TrackScreen {
     const why = race.blocker(this.d.cars());
     this.startBtn.disabled = !!why || !!field.scanning;
     this.startBtn.title = why ?? '';
+    // On a phone a disabled button says nothing: show why next to it.
+    this.whyEl.hidden = !why || race.live;
+    this.whyEl.textContent = why ? `⚠️ ${why}` : '';
     this.campaignBtn.disabled = !!why || !!field.scanning;
   }
 

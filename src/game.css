@@ -408,6 +408,17 @@ body:has(.home) .topbar .brand {
 .setup > .screen-foot .btn {
   white-space: nowrap;
 }
+/* Why the race can't start yet (car off the track, on the charger, track not scanned…) */
+.start-why {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #ffd6a0;
+  background: rgb(255 107 0 / 0.12);
+  border: 1px solid rgb(255 107 0 / 0.45);
+}
 .setup .race-settings .laps-num {
   font-family: var(--display);
   font-size: 1.1rem;
@@ -422,12 +433,16 @@ body:has(.home) .topbar .brand {
       'map info'
       'map scan'
       'map settings'
+      'map why'
       'map foot';
     align-content: start;
     column-gap: 18px;
   }
   .setup > .screen-head {
     grid-area: head;
+  }
+  .setup > .start-why {
+    grid-area: why;
   }
   .setup > .track-stage {
     grid-area: map;
@@ -1246,6 +1261,7 @@ body:has(.hud) .toast.is-visible {
       'map info'
       'map scan'
       'map settings'
+      'map why'
       'map foot';
     row-gap: 8px;
   }

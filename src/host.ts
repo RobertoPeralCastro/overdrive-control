@@ -236,8 +236,7 @@ function startRace(): void {
   if (why) return showToast(why);
   if (myRacerFor(cars)) void goLandscape();
   race.start(cars);
-  const off = cars.filter((c) => carPlace(c.state) === 'off');
-  announce(off.length ? `⚠️ ${off.map((c) => c.state.name).join(' y ')} parece fuera de la pista: ponlo sobre ella` : 'Los coches van a la línea de salida…');
+  announce('Los coches van a la línea de salida…');
   go('race');
 }
 

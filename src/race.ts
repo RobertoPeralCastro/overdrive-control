@@ -98,8 +98,10 @@ export class Race extends EventTarget {
     if (this.live) return 'La carrera ya está en marcha';
     if (!this.battle.field.lap) return 'Primero escanea la pista';
     if (!cars.some((c) => c.ready)) return 'No hay coches conectados';
-    const charging = cars.find((c) => c.ready && carPlace(c.state) === 'charger');
-    if (charging) return `${charging.state.name} está en el cargador: ponlo en la pista`;
+    const charging = cars.filter((c) => c.ready && carPlace(c.state) === 'charger');
+    if (charging.length) return `${names(charging)} ${charging.length === 1 ? 'está' : 'están'} en el cargador: ponlo en la pista`;
+    const off = cars.filter((c) => c.ready && carPlace(c.state) === 'off');
+    if (off.length) return `${names(off)} ${off.length === 1 ? 'está' : 'están'} fuera de la pista: ponlo sobre ella`;
     return undefined;
   }
 
@@ -276,4 +278,10 @@ export class Race extends EventTarget {
   private changed(): void {
     this.dispatchEvent(new Event('change'));
   }
+}
+
+/** "Skull", "Skull y Thermo", "Skull, Thermo y Nuke". */
+function names(cars: Car[]): string {
+  const n = cars.map((c) => c.state.name);
+  return n.length > 1 ? `${n.slice(0, -1).join(', ')} y ${n.at(-1)}` : n[0];
 }
