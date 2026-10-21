@@ -39,6 +39,10 @@ Bluetooth. El navegador solo lo muestra después de **pulsar un botón** del man
 en el **Garaje** elige "Mando 1", "Mando 2"… como piloto de cada coche. Un mando sin coche asignado
 conduce el coche que tengas seleccionado.
 
+**Configurar mando** (en el Garaje): cada acción se puede asignar a botones o a direcciones de los sticks, con
+prueba en vivo. El acelerador puede ir en un gatillo o en un stick (con recorrido: cuanto más se empuja, más
+rápido). Se guarda en el dispositivo para cada modelo de mando. La tabla de arriba es la asignación de fábrica.
+
 Mientras un mando conduce tu coche, la pantalla de carrera oculta los controles táctiles y muestra en su
 lugar el circuito en grande con todos los coches.
 

@@ -12,6 +12,7 @@ import { avatarFor } from './avatars';
 import { CampaignRun, LEVELS, type Level } from './campaign';
 import { RaceHud, type HudModel } from './hud';
 import { CampaignScreen, CarsScreen, HomeScreen, TrackScreen, awardsList, standingsList, type ScreenDeps } from './screens';
+import { PadConfigScreen } from './padconfig';
 import { GuestLink, type Action, type GuestEvent, type RaceSummary, type RemoteTransport, type Snapshot } from './remote';
 import { browserBanner, errText, goLandscape, keepAwake, leaveLandscape, showToast, toastElement } from './shell';
 import { SimTransport } from './sim';
@@ -47,7 +48,7 @@ let room: Room | undefined;
  * Menu → Garaje (cars) / Preparar carrera (track) / Campaña → Carrera (race).
  * "drive" is free driving one car outside a race.
  */
-type Screen = 'home' | 'cars' | 'track' | 'campaign' | 'race' | 'drive';
+type Screen = 'home' | 'cars' | 'track' | 'campaign' | 'race' | 'drive' | 'pad';
 let screen: Screen = 'home';
 /** The car being driven freely (screen "drive"). */
 let driving: Car | undefined;
@@ -598,12 +599,17 @@ const deps: ScreenDeps = {
   campaign: () => go('campaign'),
   garage: () => go('cars'),
   identify,
+  configurePad: (index) => {
+    go('pad');
+    padScreen.open(index);
+  },
   playLevel,
 };
 const homeScreen = new HomeScreen(deps);
 const carsScreen = new CarsScreen(deps);
 const trackScreen = new TrackScreen(deps);
 const campaignScreen = new CampaignScreen(deps);
+const padScreen = new PadConfigScreen(pads, () => go('cars'));
 
 // ---- Campaign -----------------------------------------------------------------------------
 
@@ -712,10 +718,11 @@ const TITLES: Record<Screen, string> = {
   campaign: 'Campaña',
   drive: 'Prueba libre',
   race: 'Carrera',
+  pad: 'Configurar mando',
 };
 
 function goBack(): void {
-  if (screen === 'drive') return go('cars');
+  if (screen === 'drive' || screen === 'pad') return go('cars');
   if (screen === 'race' && race.live) return stopAll();
   go('home');
 }
@@ -724,6 +731,7 @@ function render(): void {
   if (screen === 'race' && race.phase === 'setup') screen = 'track';
   if (screen === 'drive' && !driving) screen = 'cars';
   if (screen !== 'drive') dropCockpit();
+  if (screen !== 'pad') padScreen.close();
   if (screen !== 'race') {
     dropRaceMap();
     dropHud();
@@ -742,6 +750,8 @@ function render(): void {
   } else if (screen === 'campaign') {
     campaignScreen.update();
     show(campaignScreen.el);
+  } else if (screen === 'pad') {
+    show(padScreen.el);
   } else if (screen === 'drive') {
     showCockpit(driving!);
   } else {

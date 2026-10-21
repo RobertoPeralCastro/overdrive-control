@@ -39,6 +39,8 @@ export interface ScreenDeps {
   garage(): void;
   /** Blinks the car and shakes the pad that drives it. */
   identify(car: Car): void;
+  /** Opens "Configurar mando" for pad `index`. */
+  configurePad(index: number): void;
   playLevel(level: Level): void;
 }
 
@@ -109,7 +111,7 @@ export class CarsScreen {
 
   constructor(private d: ScreenDeps) {
     this.list = h('div', { class: 'car-cards' });
-    this.padsLine = h('p', { class: 'race-hint' });
+    this.padsLine = h('div', { class: 'race-hint pads-line' });
     this.nextBtn = h('button', { class: 'btn btn-primary btn-lg', onclick: () => d.next() }, 'Preparar carrera ›');
     const supported = d.demo || bluetoothAvailable();
     this.el = h('section', { class: 'screen' }, [
@@ -148,9 +150,11 @@ export class CarsScreen {
         : [h('div', { class: 'empty-card' }, [h('p', {}, 'Todavía no hay coches. Enciéndelos, ponlos en la pista y pulsa «Conectar coche».')])]),
     );
     const pads = this.d.pads.list();
-    this.padsLine.textContent = pads.length
-      ? `Mandos: ${pads.map((p) => `${p.index + 1}. ${p.name}`).join(' · ')}`
-      : 'Mandos USB o Bluetooth: conéctalo y pulsa cualquier botón para que aparezca aquí.';
+    this.padsLine.replaceChildren(
+      ...(pads.length
+        ? pads.map((p) => h('button', { class: 'btn btn-ghost btn-sm', title: p.name, onclick: () => this.d.configurePad(p.index) }, `🎮 Configurar Mando ${p.index + 1}`))
+        : [h('span', {}, 'Mandos USB o Bluetooth: conéctalo y pulsa cualquier botón para que aparezca aquí.')]),
+    );
     this.nextBtn.disabled = !cars.some((c) => c.ready);
   }
 
