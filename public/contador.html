@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#0b0d12" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <title>Contador de Overdrive Control</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #0b0d12;
+        color: #eef1f7;
+        font: 16px/1.5 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+      }
+      main {
+        width: min(100% - 32px, 520px);
+        text-align: center;
+      }
+      h1 {
+        font-size: 1.3rem;
+        font-style: italic;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .tiles {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin: 20px 0;
+      }
+      .tile {
+        padding: 18px 12px;
+        border-radius: 16px;
+        background: #141821;
+        border: 1px solid #262d3d;
+      }
+      .n {
+        display: block;
+        font-size: clamp(2.2rem, 12vw, 3.4rem);
+        font-weight: 800;
+        font-style: italic;
+        background: linear-gradient(90deg, #ff6b00, #ffd000);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .label {
+        font-weight: 700;
+      }
+      small,
+      p {
+        color: #8a93a6;
+      }
+      a {
+        color: #64d2ff;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>🏁 Overdrive Control · accesos</h1>
+      <div class="tiles">
+        <div class="tile"><span class="n" id="dispositivos">…</span><span class="label">personas</span><br /><small>móviles u ordenadores distintos</small></div>
+        <div class="tile"><span class="n" id="aperturas">…</span><span class="label">aperturas</span><br /><small>veces que se ha abierto la app</small></div>
+      </div>
+      <p id="note">Cuenta desde que se instaló el contador. Es aproximado: quien borra los datos del navegador o usa modo incógnito cuenta como persona nueva.</p>
+      <p><a href="./">Abrir la app</a></p>
+    </main>
+    <script>
+      const API = 'https://abacus.jasoncameron.dev/get/robertoperalcastro-overdrive/';
+      for (const key of ['dispositivos', 'aperturas']) {
+        fetch(API + key)
+          .then((r) => (r.status === 404 ? { value: 0 } : r.json()))
+          .then((d) => (document.getElementById(key).textContent = Number(d.value ?? 0).toLocaleString('es-ES')))
+          .catch(() => (document.getElementById(key).textContent = '?'));
+      }
+    </script>
+  </body>
+</html>
