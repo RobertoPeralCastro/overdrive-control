@@ -1,4 +1,5 @@
 import { h } from './dom';
+import { t } from './i18n';
 import { LIGHTS } from './race';
 import type { RaceSummary } from './remote';
 
@@ -26,13 +27,25 @@ export class RaceStrip {
     const mine = r.standings[me];
     let text: string;
     if (r.phase === 'setup') text = this.idleText!;
-    else if (r.phase === 'grid') text = 'Colocándose en la línea de salida…';
-    else if (r.phase === 'countdown') text = 'Preparados…';
-    else if (mine?.place) text = mine.place === 1 ? '🏆 ¡Has ganado!' : `Llegas ${mine.place}.º`;
-    else if (r.phase === 'running') text = `Vuelta ${Math.min((mine?.laps ?? 0) + 1, r.totalLaps)}/${r.totalLaps} · ${me + 1}.º de ${r.standings.length}`;
-    else text = r.winner ? `🏆 Gana ${r.winner}` : 'Carrera terminada';
+    else if (r.phase === 'grid') text = t('Colocándose en la línea de salida…', 'Lining up on the grid…');
+    else if (r.phase === 'countdown') text = t('Preparados…', 'Get ready…');
+    else if (mine?.place) text = mine.place === 1 ? t('🏆 ¡Has ganado!', '🏆 You won!') : t(`Llegas ${mine.place}.º`, `You finish ${enOrdinal(mine.place)}`);
+    else if (r.phase === 'running') {
+      const lap = Math.min((mine?.laps ?? 0) + 1, r.totalLaps);
+      text = t(`Vuelta ${lap}/${r.totalLaps} · ${me + 1}.º de ${r.standings.length}`, `Lap ${lap}/${r.totalLaps} · ${enOrdinal(me + 1)} of ${r.standings.length}`);
+    } else text = r.winner ? t(`🏆 Gana ${r.winner}`, `🏆 ${r.winner} wins`) : t('Carrera terminada', 'Race over');
     const lights = h('div', { class: 'mini-lights', 'aria-hidden': 'true' }, Array.from({ length: LIGHTS }, (_, i) => h('span', { class: `bulb ${i < r.lights ? 'is-lit' : ''}` })));
     lights.hidden = r.phase !== 'countdown';
-    this.el.replaceChildren(lights, h('span', { class: 'guest-race-text' }, text), h('button', { class: 'btn btn-ghost btn-sm', onclick: this.openStandings }, 'Clasificación'));
+    this.el.replaceChildren(lights, h('span', { class: 'guest-race-text' }, text), h('button', { class: 'btn btn-ghost btn-sm', onclick: this.openStandings }, t('Clasificación', 'Standings')));
   }
 }
+
+/** English ordinal suffix: 1 → 'st', 2 → 'nd', 3 → 'rd', 11 → 'th'… */
+export function enSuffix(n: number): string {
+  const tens = n % 100;
+  if (tens >= 11 && tens <= 13) return 'th';
+  return ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th';
+}
+
+/** English ordinal: 1st, 2nd, 3rd, 4th… */
+export const enOrdinal = (n: number): string => `${n}${enSuffix(n)}`;

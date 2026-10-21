@@ -1,3 +1,4 @@
+import { t } from './i18n';
 import { ANKI_COMPANY_ID, ANKI_READ_CHAR, ANKI_SERVICE, ANKI_WRITE_CHAR } from './protocol';
 
 /** Byte pipe to one car. The Car class holds all driving logic on top of this. */
@@ -63,7 +64,7 @@ export class WebBluetoothTransport implements Transport {
 
   async write(bytes: Uint8Array): Promise<void> {
     const c = this.writeChar;
-    if (!c) throw new Error('No conectado');
+    if (!c) throw new Error(t('No conectado', 'Not connected'));
     const data = bytes as Uint8Array<ArrayBuffer>;
     if (c.properties.writeWithoutResponse) await c.writeValueWithoutResponse(data);
     else await c.writeValueWithResponse(data);

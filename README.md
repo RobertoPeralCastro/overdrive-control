@@ -18,6 +18,8 @@ El protocolo está portado de [OpenOverdrive](https://github.com/dschwen/OpenOve
 - En el móvil se juega en **horizontal como un volante**: inclinar el móvil cambia de carril.
 - **Campaña** de 10 pruebas contra la IA y **estadísticas** guardadas por coche (victorias,
   velocidad máxima, tiempo en cabeza, vuelta rápida…). Todo explicado en `public/manual.html`.
+- **Español e inglés**: se elige solo según el idioma del navegador, o con el selector ES | EN del menú
+  principal. Los textos están en `t('español', 'English')` (`src/i18n.ts`); manual en inglés en `public/manual-en.html`.
 
 ### Controles
 

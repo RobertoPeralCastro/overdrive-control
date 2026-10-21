@@ -21,6 +21,7 @@ import { TiltSteer } from './tilt';
 import { sound, type SoundName } from './sound';
 import { describeTrack } from './track';
 import { bluetoothAvailable, pickCar, type Transport } from './transport';
+import { manualUrl, t } from './i18n';
 
 /**
  * The host phone: connects cars, runs weapons, races and the AI, and can invite other phones
@@ -55,19 +56,19 @@ let driving: Car | undefined;
 
 const app = document.getElementById('app')!;
 const titleText = h('h1', { class: 'screen-title' });
-const titlebar = h('div', { class: 'titlebar' }, [h('button', { class: 'back', onclick: () => goBack(), 'aria-label': 'Atrás' }, '‹'), titleText]);
-const trophies = h('span', { class: 'trophies', title: 'Victorias en este móvil' });
+const titlebar = h('div', { class: 'titlebar' }, [h('button', { class: 'back', onclick: () => goBack(), 'aria-label': t('Atrás', 'Back') }, '‹'), titleText]);
+const trophies = h('span', { class: 'trophies', title: t('Victorias en este móvil', 'Wins on this phone') });
 const stage = h('main', { class: 'stage stage-stack' });
-const invite = h('dialog', { class: 'sheet', 'aria-label': 'Jugar con otro móvil' });
-const standingsSheet = h('dialog', { class: 'sheet', 'aria-label': 'Clasificación' });
+const invite = h('dialog', { class: 'sheet', 'aria-label': t('Jugar con otro móvil', 'Play with another phone') });
+const standingsSheet = h('dialog', { class: 'sheet', 'aria-label': t('Clasificación', 'Standings') });
 
 app.append(
   h('header', { class: 'topbar' }, [
     h('div', { class: 'brand' }, [h('span', { class: 'brand-mark' }), 'Overdrive']),
     h('div', { class: 'top-actions' }, [
       trophies,
-      h('button', { class: 'btn btn-ghost', onclick: openInvite, title: 'Jugar con otro móvil', 'aria-label': 'Jugar con otro móvil' }, '📱'),
-      h('button', { class: 'btn btn-stop', onclick: stopAll, title: 'Frenar todos los coches (Esc)' }, 'STOP'),
+      h('button', { class: 'btn btn-ghost', onclick: openInvite, title: t('Jugar con otro móvil', 'Play with another phone'), 'aria-label': t('Jugar con otro móvil', 'Play with another phone') }, '📱'),
+      h('button', { class: 'btn btn-stop', onclick: stopAll, title: t('Frenar todos los coches (Esc)', 'Brake all cars (Esc)') }, 'STOP'),
     ]),
   ]),
   ...[browserBanner(demo || bluetoothAvailable())].filter((x): x is HTMLElement => !!x),
@@ -83,7 +84,7 @@ app.append(
 async function addCar(): Promise<void> {
   let transport: Transport;
   if (demo || !bluetoothAvailable()) {
-    if (!demo) return showToast('Este navegador no tiene Bluetooth. Usa Chrome o Edge.');
+    if (!demo) return showToast(t('Este navegador no tiene Bluetooth. Usa Chrome o Edge.', 'This browser has no Bluetooth. Use Chrome or Edge.'));
     transport = new SimTransport();
   } else {
     try {
@@ -92,7 +93,7 @@ async function addCar(): Promise<void> {
       console.error('requestDevice failed', e);
       // Chrome uses NotFoundError both for "picker closed" and "no adapter", so look at the message.
       if (/cancel/i.test(errText(e))) return;
-      if (/adapter/i.test(errText(e))) return showToast('Chrome no encuentra el Bluetooth del equipo. Revisa que esté encendido.');
+      if (/adapter/i.test(errText(e))) return showToast(t('Chrome no encuentra el Bluetooth del equipo. Revisa que esté encendido.', "Chrome can't find this device's Bluetooth. Check that it's turned on."));
       showToast(errText(e));
       return;
     }
@@ -109,7 +110,7 @@ async function addCar(): Promise<void> {
     await car.connect();
     vibrate(30);
   } catch (e) {
-    showToast(`No se pudo conectar: ${errText(e)}`);
+    showToast(t(`No se pudo conectar: ${errText(e)}`, `Couldn't connect: ${errText(e)}`));
   }
 }
 
@@ -155,7 +156,7 @@ function go(to: Screen): void {
 /** Free driving outside a race (from the cars screen). */
 function drive(car: Car): void {
   // The AI drives its cars during a race: there is nothing to steer.
-  if (race.isAi(car)) return showToast(`${car.state.name} lo conduce la IA durante la carrera`);
+  if (race.isAi(car)) return showToast(t(`${car.state.name} lo conduce la IA durante la carrera`, `The AI drives ${car.state.name} during the race`));
   driving = car;
   go('drive');
 }
@@ -212,8 +213,8 @@ function fire(car: Car, id: WeaponId, local = true): void {
   const r = battle.fire(car, id);
   if (!r.ok) {
     if (!local) return;
-    if (r.reason === 'Sin energía') sound.empty();
-    if (r.reason !== 'Recargando') showToast(r.reason);
+    if (r.code === 'empty') sound.empty();
+    if (r.code !== 'cooling') showToast(r.reason);
     return;
   }
   if (local) vibrate(id === 'blaster' ? 15 : 40);
@@ -222,7 +223,7 @@ function fire(car: Car, id: WeaponId, local = true): void {
 function scanTrack(car: Car): void {
   if (!car.ready || racing()) return;
   field.scan(car);
-  announce(`${car.state.name} está escaneando la pista: dará una vuelta y frenará`);
+  announce(t(`${car.state.name} está escaneando la pista: dará una vuelta y frenará`, `${car.state.name} is scanning the track: it will do one lap and stop`));
 }
 
 function startRace(): void {
@@ -237,14 +238,18 @@ function startRace(): void {
   if (why) return showToast(why);
   if (myRacerFor(cars)) void goLandscape();
   race.start(cars);
-  announce('Los coches van a la línea de salida…');
+  announce(t('Los coches van a la línea de salida…', 'Cars heading to the starting line…'));
   go('race');
 }
 
+/** 1st, 2nd, 3rd, 4th… */
+const ordinal = (n: number): string =>
+  `${n}${n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th'}`;
+
 const WEAPON_SOUNDS: Record<WeaponId, SoundName> = { blaster: 'laser', missile: 'missile', pulse: 'pulse', shield: 'shield' };
 
-field.addEventListener('track', () => announce(`Pista escaneada: ${describeTrack(field.lap!)}`));
-field.addEventListener('scanfail', () => announce('No se pudo escanear la pista. Comprueba que el coche está sobre ella.'));
+field.addEventListener('track', () => announce(t(`Pista escaneada: ${describeTrack(field.lap!)}`, `Track scanned: ${describeTrack(field.lap!)}`)));
+field.addEventListener('scanfail', () => announce(t('No se pudo escanear la pista. Comprueba que el coche está sobre ella.', "Couldn't scan the track. Check that the car is on it.")));
 battle.addEventListener('change', () => {
   cockpit?.updateBattle();
   updateStrip();
@@ -262,9 +267,9 @@ battle.addEventListener('fire', (e) => {
   }, weapon.id === 'missile' ? 350 : 120);
   if (!hits.length) return;
   const text = hits
-    .map((hit) => `${hit.target.state.name}${hit.knockedOut ? ' ¡fuera de combate!' : hit.blocked ? ' (bloqueado por escudo)' : ''}`)
+    .map((hit) => `${hit.target.state.name}${hit.knockedOut ? t(' ¡fuera de combate!', ' knocked out!') : hit.blocked ? t(' (bloqueado por escudo)', ' (blocked by shield)') : ''}`)
     .join(', ');
-  announce(`${weapon.name} de ${shooter.state.name} → ${text}`);
+  announce(t(`${weapon.name} de ${shooter.state.name} → ${text}`, `${shooter.state.name}'s ${weapon.name} → ${text}`));
   hits.filter((hit) => !hit.blocked).forEach((hit) => buzz(hit.target, [80, 40, 80]));
 });
 battle.start();
@@ -272,7 +277,7 @@ battle.start();
 race.addEventListener('change', () => render());
 race.addEventListener('parked', (e) => {
   sfx('lap');
-  announce(`${(e as CustomEvent<Car>).detail.state.name} está en la línea de salida`);
+  announce(t(`${(e as CustomEvent<Car>).detail.state.name} está en la línea de salida`, `${(e as CustomEvent<Car>).detail.state.name} is on the starting line`));
 });
 race.addEventListener('light', () => sfx('light'));
 race.addEventListener('go', () => {
@@ -283,17 +288,17 @@ race.addEventListener('lap', (e) => {
   const entry = (e as CustomEvent<Entry>).detail;
   if (entry.laps === race.totalLaps - 1) {
     sfx('finalLap');
-    announce(`¡Última vuelta para ${entry.car.state.name}!`);
+    announce(t(`¡Última vuelta para ${entry.car.state.name}!`, `Final lap for ${entry.car.state.name}!`));
   } else sfx('lap');
 });
 race.addEventListener('finish', (e) => {
   const entry = (e as CustomEvent<Entry>).detail;
   if (entry.place === 1) {
     sfx('win');
-    announce(`🏆 ¡${entry.car.state.name} gana la carrera!`);
+    announce(t(`🏆 ¡${entry.car.state.name} gana la carrera!`, `🏆 ${entry.car.state.name} wins the race!`));
   } else {
     sfx('finish');
-    announce(`${entry.car.state.name} llega en ${entry.place}.ª posición`);
+    announce(t(`${entry.car.state.name} llega en ${entry.place}.ª posición`, `${entry.car.state.name} finishes ${ordinal(entry.place ?? 0)}`));
   }
 });
 
@@ -317,16 +322,20 @@ function targetOf(car: Car): { text: string; hot: boolean } {
   const down = f && f.downUntil > field.now();
   const target = battle.targetFor(car);
   let text: string;
-  if (down) text = `¡Fuera de combate! ${Math.ceil((f.downUntil - field.now()) / 1000)} s`;
-  else if (field.scanning === car) text = 'Escaneando pista…';
-  else if (race.isAi(car)) text = 'Conduce la IA';
+  if (down) text = t(`¡Fuera de combate! ${Math.ceil((f.downUntil - field.now()) / 1000)} s`, `Knocked out! ${Math.ceil((f.downUntil - field.now()) / 1000)} s`);
+  else if (field.scanning === car) text = t('Escaneando pista…', 'Scanning track…');
+  else if (race.isAi(car)) text = t('Conduce la IA', 'AI driving');
   else text = targetText(target && { name: target.car.state.name, pieces: target.pieces }, cars.length > 1);
-  return { text: `${text}${f?.kills ? ` · Derribos: ${f.kills}` : ''}`, hot: !!target && !down };
+  return { text: `${text}${f?.kills ? t(` · Derribos: ${f.kills}`, ` · Kills: ${f.kills}`) : ''}`, hot: !!target && !down };
 }
 
 function trackOf(car: Car): { text: string; canScan: boolean; rescan: boolean } {
   return {
-    text: field.lap ? `Pista: ${describeTrack(field.lap)}` : field.scanning ? 'Escaneando pista…' : 'Pista sin escanear',
+    text: field.lap
+      ? t(`Pista: ${describeTrack(field.lap)}`, `Track: ${describeTrack(field.lap)}`)
+      : field.scanning
+        ? t('Escaneando pista…', 'Scanning track…')
+        : t('Pista sin escanear', 'Track not scanned'),
     canScan: car.ready && !field.scanning && !racing(),
     rescan: !!field.lap,
   };
@@ -345,7 +354,7 @@ function hostModel(car: Car): CockpitModel {
     scan: () => scanTrack(car),
     reconnect: () => void car.connect().catch((e) => showToast(errText(e))),
     remove: () => removeCar(car),
-    removeLabel: 'Desconectar',
+    removeLabel: t('Desconectar', 'Disconnect'),
     toast: showToast,
   };
 }
@@ -386,13 +395,13 @@ function snapshotFor(car: Car, events: GuestEvent[]): Snapshot {
 
 function onGuest(ch: Channel): void {
   const link = new GuestLink(ch, {
-    addCar: (t: RemoteTransport) => {
-      const car = register(t);
+    addCar: (transport: RemoteTransport) => {
+      const car = register(transport);
       race.setDriver(car, { kind: 'guest' });
       void car
         .connect()
-        .then(() => announce(`📱 ${car.state.name} se ha unido desde otro móvil`))
-        .catch((e) => showToast(`No se pudo conectar el coche del invitado: ${errText(e)}`));
+        .then(() => announce(t(`📱 ${car.state.name} se ha unido desde otro móvil`, `📱 ${car.state.name} joined from another phone`)))
+        .catch((e) => showToast(t(`No se pudo conectar el coche del invitado: ${errText(e)}`, `Couldn't connect the guest's car: ${errText(e)}`)));
       render();
       // The link only learns its car when this returns.
       queueMicrotask(renderInvite);
@@ -402,7 +411,7 @@ function onGuest(ch: Channel): void {
     left: (l) => {
       links.splice(links.indexOf(l), 1);
       if (l.car) {
-        announce(`📱 ${l.car.state.name} ha salido de la partida`);
+        announce(t(`📱 ${l.car.state.name} ha salido de la partida`, `📱 ${l.car.state.name} left the game`));
         removeCar(l.car);
       }
       renderInvite();
@@ -474,8 +483,8 @@ async function openInvite(): Promise<void> {
 function renderInvite(): void {
   if (!invite.open) return;
   const url = room && joinUrl(room.code, demo);
-  const guests = links.map((l) => h('li', {}, `📱 ${l.car ? `${l.car.state.name} · ${l.car.ready ? 'listo' : 'conectando…'}` : 'Conectado, falta su coche'}`));
-  const codeInput = h('input', { class: 'code-input', type: 'text', inputmode: 'text', autocomplete: 'off', placeholder: 'código', maxlength: '8', 'aria-label': 'Código de partida' });
+  const guests = links.map((l) => h('li', {}, `📱 ${l.car ? `${l.car.state.name} · ${l.car.ready ? t('listo', 'ready') : t('conectando…', 'connecting…')}` : t('Conectado, falta su coche', 'Connected, no car yet')}`));
+  const codeInput = h('input', { class: 'code-input', type: 'text', inputmode: 'text', autocomplete: 'off', placeholder: t('código', 'code'), maxlength: '8', 'aria-label': t('Código de partida', 'Game code') });
   const join = () => {
     const code = normalizeCode(codeInput.value);
     if (code.length >= 4) location.href = joinUrl(code, demo);
@@ -484,25 +493,25 @@ function renderInvite(): void {
 
   invite.replaceChildren(
     h('div', { class: 'sheet-head' }, [
-      h('h2', {}, 'Jugar con otro móvil'),
-      h('button', { class: 'btn btn-ghost btn-sm', onclick: () => invite.close(), 'aria-label': 'Cerrar' }, '✕'),
+      h('h2', {}, t('Jugar con otro móvil', 'Play with another phone')),
+      h('button', { class: 'btn btn-ghost btn-sm', onclick: () => invite.close(), 'aria-label': t('Cerrar', 'Close') }, '✕'),
     ]),
     inviteError
-      ? h('div', { class: 'sheet-body' }, [h('p', { class: 'warn' }, inviteError), h('button', { class: 'btn btn-primary', onclick: openInvite }, 'Reintentar')])
+      ? h('div', { class: 'sheet-body' }, [h('p', { class: 'warn' }, inviteError), h('button', { class: 'btn btn-primary', onclick: openInvite }, t('Reintentar', 'Retry'))])
       : !room
-        ? h('div', { class: 'sheet-body' }, [h('div', { class: 'spinner' }), h('p', {}, 'Creando la partida…')])
+        ? h('div', { class: 'sheet-body' }, [h('div', { class: 'spinner' }), h('p', {}, t('Creando la partida…', 'Creating the game…'))])
         : h('div', { class: 'sheet-body' }, [
-            h('p', {}, 'En el otro móvil, escanea este código con la cámara. Se abrirá la app lista para conectar su coche.'),
+            h('p', {}, t('En el otro móvil, escanea este código con la cámara. Se abrirá la app lista para conectar su coche.', 'On the other phone, scan this code with the camera. The app will open, ready to connect its car.')),
             qrBox(url!),
-            h('p', { class: 'room-code' }, ['Código: ', h('strong', {}, room.code.toUpperCase())]),
-            h('button', { class: 'btn btn-ghost btn-sm', onclick: () => shareLink(url!) }, 'Compartir enlace'),
-            h('ul', { class: 'guest-list' }, guests.length ? guests : [h('li', { class: 'muted' }, 'Aún no se ha unido nadie')]),
+            h('p', { class: 'room-code' }, [t('Código: ', 'Code: '), h('strong', {}, room.code.toUpperCase())]),
+            h('button', { class: 'btn btn-ghost btn-sm', onclick: () => shareLink(url!) }, t('Compartir enlace', 'Share link')),
+            h('ul', { class: 'guest-list' }, guests.length ? guests : [h('li', { class: 'muted' }, t('Aún no se ha unido nadie', 'No one has joined yet'))]),
             h('p', { class: 'race-hint' }, [
-              'Cada jugador conecta su propio coche desde su móvil. La carrera se empieza desde aquí, en Preparar carrera.',
-              h('a', { href: 'manual.html#multijugador', target: '_blank', rel: 'noopener' }, 'Ayuda'),
+              t('Cada jugador conecta su propio coche desde su móvil. La carrera se empieza desde aquí, en Preparar carrera.', 'Each player connects their own car from their phone. The race is started from here, in Race setup.'),
+              h('a', { href: manualUrl('#multijugador'), target: '_blank', rel: 'noopener' }, t('Ayuda', 'Help')),
             ]),
           ]),
-    h('div', { class: 'sheet-join' }, [h('p', {}, '¿Te han invitado a ti? Escribe su código:'), h('div', { class: 'join-row' }, [codeInput, h('button', { class: 'btn btn-primary', onclick: join }, 'Unirse')])]),
+    h('div', { class: 'sheet-join' }, [h('p', {}, t('¿Te han invitado a ti? Escribe su código:', 'Were you invited? Enter their code:')), h('div', { class: 'join-row' }, [codeInput, h('button', { class: 'btn btn-primary', onclick: join }, t('Unirse', 'Join'))])]),
   );
 }
 
@@ -510,17 +519,17 @@ function qrBox(url: string): HTMLElement {
   const qr = qrcode(0, 'M');
   qr.addData(url);
   qr.make();
-  const box = h('div', { class: 'qr', role: 'img', 'aria-label': 'Código QR para unirse' });
+  const box = h('div', { class: 'qr', role: 'img', 'aria-label': t('Código QR para unirse', 'QR code to join') });
   box.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
   return box;
 }
 
 async function shareLink(url: string): Promise<void> {
   try {
-    if (navigator.share) await navigator.share({ title: 'Overdrive: únete a mi carrera', url });
+    if (navigator.share) await navigator.share({ title: t('Overdrive: únete a mi carrera', 'Overdrive: join my race'), url });
     else {
       await navigator.clipboard.writeText(url);
-      showToast('Enlace copiado');
+      showToast(t('Enlace copiado', 'Link copied'));
     }
   } catch {
     /* share sheet closed */
@@ -543,7 +552,7 @@ function padCar(index: number): Car | undefined {
 /** Name of the pad driving `car`, if one is. */
 function padDriving(car: Car): string | undefined {
   const pad = pads.list().find((p) => padCar(p.index) === car || race.carForPad(p.index) === car);
-  return pad && `Mando ${pad.index + 1} (${pad.name})`;
+  return pad && t(`Mando ${pad.index + 1} (${pad.name})`, `Controller ${pad.index + 1} (${pad.name})`);
 }
 
 const pads = new Gamepads({
@@ -566,10 +575,10 @@ function whichPad(index: number): void {
   padCalledAt.set(index, now);
   pads.rumble(index);
   const car = race.carForPad(index);
-  if (!car) return showToast(`🎮 Mando ${index + 1} sin coche: elígelo como piloto en la tarjeta de un coche`);
+  if (!car) return showToast(t(`🎮 Mando ${index + 1} sin coche: elígelo como piloto en la tarjeta de un coche`, `🎮 Controller ${index + 1} has no car: pick it as the driver on a car's card`));
   if (car.ready) car.identify();
-  carsScreen.highlight(car, `🎮 Mando ${index + 1}`);
-  showToast(`🎮 Mando ${index + 1} conduce a ${car.state.name}`);
+  carsScreen.highlight(car, t(`🎮 Mando ${index + 1}`, `🎮 Controller ${index + 1}`));
+  showToast(t(`🎮 Mando ${index + 1} conduce a ${car.state.name}`, `🎮 Controller ${index + 1} drives ${car.state.name}`));
 }
 
 /** «Identificar»: the car blinks, and the pad that drives it shakes. */
@@ -621,14 +630,14 @@ function playLevel(level: Level): void {
   sound.unlock();
   TiltSteer.prime();
   if (!field.lap) {
-    showToast('Antes de la campaña, escanea la pista');
+    showToast(t('Antes de la campaña, escanea la pista', 'Scan the track before the campaign'));
     return go('track');
   }
   const local = cars.filter((c) => c.ready && !isGuestCar(c));
   const player = local.find((c) => ['screen', 'pad'].includes(race.driverOf(c).kind));
-  if (!player) return showToast('En el garaje, elige un coche que conduzcas tú (pantalla o mando)');
+  if (!player) return showToast(t('En el garaje, elige un coche que conduzcas tú (pantalla o mando)', 'In the garage, pick a car you drive yourself (screen or controller)'));
   const rivals = local.filter((c) => c !== player).slice(0, level.rivals.length);
-  if (rivals.length < level.rivals.length) return showToast(`Este nivel necesita ${level.rivals.length + 1} coches conectados`);
+  if (rivals.length < level.rivals.length) return showToast(t(`Este nivel necesita ${level.rivals.length + 1} coches conectados`, `This level needs ${level.rivals.length + 1} connected cars`));
   const why = race.blocker(cars);
   if (why) return showToast(why);
 
@@ -651,17 +660,17 @@ function playLevel(level: Level): void {
     if (race.live) race.end();
     if (run.outcome === 'won') {
       sfx('win');
-      announce(`✅ ¡Nivel ${run.level.id} superado!`);
+      announce(t(`✅ ¡Nivel ${run.level.id} superado!`, `✅ Level ${run.level.id} complete!`));
     } else {
       sfx('knockout');
-      announce('❌ No lo has conseguido. ¡Inténtalo otra vez!');
+      announce(t('❌ No lo has conseguido. ¡Inténtalo otra vez!', "❌ You didn't make it. Try again!"));
     }
     finishCampaign();
     render();
   });
   if (race.driverOf(player).kind === 'screen') void goLandscape();
   race.start([player, ...rivals]);
-  announce(`Nivel ${level.id} · ${level.name}: ${level.brief}`);
+  announce(t(`Nivel ${level.id} · ${level.name}: ${level.brief}`, `Level ${level.id} · ${level.name}: ${level.brief}`));
   go('race');
 }
 
@@ -673,7 +682,7 @@ function finishCampaign(): void {
 }
 
 function goalText(): string | undefined {
-  return campaign && campaign.outcome === 'playing' ? `Nivel ${campaign.level.id} · ${campaign.progress()}` : undefined;
+  return campaign && campaign.outcome === 'playing' ? t(`Nivel ${campaign.level.id} · ${campaign.progress()}`, `Level ${campaign.level.id} · ${campaign.progress()}`) : undefined;
 }
 
 // ---- Rendering ----------------------------------------------------------------------------
@@ -713,12 +722,12 @@ function show(...els: HTMLElement[]): void {
 
 const TITLES: Record<Screen, string> = {
   home: '',
-  cars: 'Garaje',
-  track: 'Preparar carrera',
-  campaign: 'Campaña',
-  drive: 'Prueba libre',
-  race: 'Carrera',
-  pad: 'Configurar mando',
+  cars: t('Garaje', 'Garage'),
+  track: t('Preparar carrera', 'Race setup'),
+  campaign: t('Campaña', 'Campaign'),
+  drive: t('Prueba libre', 'Free drive'),
+  race: t('Carrera', 'Race'),
+  pad: t('Configurar mando', 'Controller setup'),
 };
 
 function goBack(): void {
@@ -763,7 +772,7 @@ function renderTitle(): void {
   const wins = Object.values(loadRecords()).reduce((n, r) => n + r.wins, 0);
   trophies.textContent = `🏆 ${wins}`;
   titlebar.hidden = screen === 'home';
-  titleText.textContent = screen === 'race' && race.phase === 'finished' ? 'Resultados' : TITLES[screen];
+  titleText.textContent = screen === 'race' && race.phase === 'finished' ? t('Resultados', 'Results') : TITLES[screen];
 }
 
 function showCockpit(car: Car): void {
@@ -808,8 +817,13 @@ function renderRace(): void {
   raceMap ??= new MapView(() => fieldSource(field, { cars: () => cars, me: mine }));
   raceMap.update();
   const head = h('header', { class: 'screen-head' });
-  if (race.phase === 'grid') head.append(h('h1', {}, 'A la salida'), h('p', {}, `Los coches van a la línea de salida (${race.parked.size}/${race.entries.size}).`));
-  else head.append(h('h1', {}, race.phase === 'countdown' ? 'Preparados…' : `Carrera · ${race.totalLaps} ${race.totalLaps === 1 ? 'vuelta' : 'vueltas'}`));
+  if (race.phase === 'grid') head.append(
+      h('h1', {}, t('A la salida', 'To the start')),
+      h('p', {}, t(`Los coches van a la línea de salida (${race.parked.size}/${race.entries.size}).`, `Cars heading to the starting line (${race.parked.size}/${race.entries.size}).`)),
+    );
+  else head.append(h('h1', {}, race.phase === 'countdown'
+          ? t('Preparados…', 'Get ready…')
+          : t(`Carrera · ${race.totalLaps} ${race.totalLaps === 1 ? 'vuelta' : 'vueltas'}`, `Race · ${race.totalLaps} ${race.totalLaps === 1 ? 'lap' : 'laps'}`),));
   const lights =
     race.phase === 'countdown'
       ? h('div', { class: 'lights is-on', 'aria-hidden': 'true' }, Array.from({ length: LIGHTS }, (_, i) => h('span', { class: `bulb ${i < race.lights ? 'is-lit' : ''}` })))
@@ -819,7 +833,7 @@ function renderRace(): void {
       head,
       h('div', { class: 'track-stage' }, lights ? [raceMap.el, lights] : [raceMap.el]),
       standingsList(race, battle, cars),
-      h('footer', { class: 'screen-foot' }, h('button', { class: 'btn btn-stop', onclick: stopAll }, 'Parar carrera')),
+      h('footer', { class: 'screen-foot' }, h('button', { class: 'btn btn-stop', onclick: stopAll }, t('Parar carrera', 'Stop race'))),
     ]),
   );
 }
@@ -832,22 +846,22 @@ function renderResults(): void {
   const winner = race.winner();
   const title = run
     ? run.outcome === 'won'
-      ? `¡Nivel ${run.level.id} superado!`
-      : `Nivel ${run.level.id}: inténtalo otra vez`
+      ? t(`¡Nivel ${run.level.id} superado!`, `Level ${run.level.id} complete!`)
+      : t(`Nivel ${run.level.id}: inténtalo otra vez`, `Level ${run.level.id}: try again`)
     : winner
-      ? `¡Gana ${winner.car.state.name}!`
-      : 'Carrera terminada';
+      ? t(`¡Gana ${winner.car.state.name}!`, `${winner.car.state.name} wins!`)
+      : t('Carrera terminada', 'Race over');
   const next = run && LEVELS.find((l) => l.id === run.level.id + 1);
   const actions = run
     ? [
-        h('button', { class: 'btn btn-ghost', onclick: () => go('campaign') }, 'Campaña'),
+        h('button', { class: 'btn btn-ghost', onclick: () => go('campaign') }, t('Campaña', 'Campaign')),
         run.outcome === 'won' && next
-          ? h('button', { class: 'btn btn-primary btn-lg', onclick: () => playLevel(next) }, `Nivel ${next.id} ›`)
-          : h('button', { class: 'btn btn-primary btn-lg', onclick: () => playLevel(run.level) }, 'Reintentar'),
+          ? h('button', { class: 'btn btn-primary btn-lg', onclick: () => playLevel(next) }, t(`Nivel ${next.id} ›`, `Level ${next.id} ›`))
+          : h('button', { class: 'btn btn-primary btn-lg', onclick: () => playLevel(run.level) }, t('Reintentar', 'Retry')),
       ]
     : [
-        h('button', { class: 'btn btn-ghost', onclick: () => go('home') }, 'Menú'),
-        h('button', { class: 'btn btn-primary btn-lg', onclick: startRace }, 'Revancha'),
+        h('button', { class: 'btn btn-ghost', onclick: () => go('home') }, t('Menú', 'Menu')),
+        h('button', { class: 'btn btn-primary btn-lg', onclick: startRace }, t('Revancha', 'Rematch')),
       ];
   showOnce(
     h('section', { class: `screen results ${run ? (run.outcome === 'won' ? 'is-won' : 'is-lost') : ''}` }, [
@@ -874,7 +888,7 @@ function podium(): HTMLElement {
     return h('div', { class: `podium-step is-p${place}`, style: `--car:${e.car.state.color}` }, [
       h('img', { class: 'podium-avatar', src: avatarFor(e.car.id, e.car.state.name, e.car.state.color), alt: '' }),
       h('strong', { class: 'podium-name' }, e.car.state.name),
-      h('span', { class: 'podium-time' }, best ? `mejor ${(best / 1000).toFixed(2)} s` : e.place ? '' : 'sin terminar'),
+      h('span', { class: 'podium-time' }, best ? t(`mejor ${(best / 1000).toFixed(2)} s`, `best ${(best / 1000).toFixed(2)} s`) : e.place ? '' : t('sin terminar', 'DNF')),
       h('div', { class: 'podium-block' }, h('span', {}, String(place))),
     ]);
   };
@@ -888,7 +902,10 @@ function openStandings(): void {
 
 function renderStandings(): void {
   standingsSheet.replaceChildren(
-    h('div', { class: 'sheet-head' }, [h('h2', {}, 'Clasificación'), h('button', { class: 'btn btn-ghost btn-sm', onclick: () => standingsSheet.close(), 'aria-label': 'Cerrar' }, '✕')]),
+    h('div', { class: 'sheet-head' }, [
+      h('h2', {}, t('Clasificación', 'Standings')),
+      h('button', { class: 'btn btn-ghost btn-sm', onclick: () => standingsSheet.close(), 'aria-label': t('Cerrar', 'Close') }, '✕'),
+    ]),
     standingsList(race, battle, cars),
   );
 }
@@ -903,10 +920,10 @@ function notePlace(car: Car): void {
   if (now === before || now === 'unknown') return;
   const name = car.state.name;
   if (now === 'off') {
-    announce(`⚠️ ${name} se ha salido de la pista`);
+    announce(t(`⚠️ ${name} se ha salido de la pista`, `⚠️ ${name} went off the track`));
     buzz(car, [200, 100, 200]);
-  } else if (now === 'charger') announce(`🔌 ${name} está en el cargador`);
-  else if (before === 'off' || before === 'charger') announce(`✅ ${name} vuelve a estar en la pista`);
+  } else if (now === 'charger') announce(t(`🔌 ${name} está en el cargador`, `🔌 ${name} is on the charger`));
+  else if (before === 'off' || before === 'charger') announce(t(`✅ ${name} vuelve a estar en la pista`, `✅ ${name} is back on the track`));
 }
 
 function onCarChange(car: Car): void {

@@ -1,4 +1,5 @@
 import { h } from './dom';
+import { t } from './i18n';
 
 /** Bits both the host and the guest screens use: toasts, keeping the screen on, errors. */
 
@@ -73,7 +74,7 @@ function inAppBrowser(): string | undefined {
   if (/Instagram/i.test(ua)) return 'Instagram';
   if (/Twitter/i.test(ua)) return 'X';
   if (/WhatsApp/i.test(ua)) return 'WhatsApp';
-  if (/; wv\)/.test(ua)) return 'otra app';
+  if (/; wv\)/.test(ua)) return t('otra app', 'another app');
   return undefined;
 }
 
@@ -90,19 +91,19 @@ export function browserBanner(hasBluetooth: boolean): HTMLElement | null {
   const chrome = `intent://${here}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(location.href)};end`;
   const demo = location.pathname + '?demo';
   const text = app
-    ? `Estás en el navegador de ${app}, que no puede conectar con los coches por Bluetooth.`
-    : 'Este navegador no puede conectar con los coches por Bluetooth.';
+    ? t(`Estás en el navegador de ${app}, que no puede conectar con los coches por Bluetooth.`, `You're in ${app}'s browser, which can't connect to the cars over Bluetooth.`)
+    : t('Este navegador no puede conectar con los coches por Bluetooth.', "This browser can't connect to the cars over Bluetooth.");
   const how = android
-    ? 'Ábrela en Chrome:'
+    ? t('Ábrela en Chrome:', 'Open it in Chrome:')
     : ios
-      ? 'En iPhone, copia el enlace y ábrelo en el navegador gratuito Bluefy.'
-      : 'Ábrela en Chrome o Edge.';
+      ? t('En iPhone, copia el enlace y ábrelo en el navegador gratuito Bluefy.', 'On iPhone, copy the link and open it in the free Bluefy browser.')
+      : t('Ábrela en Chrome o Edge.', 'Open it in Chrome or Edge.');
   return h('div', { class: 'browser-banner', role: 'alert' }, [
     h('p', {}, [h('strong', {}, text), ' ', how]),
     h('div', { class: 'browser-banner-actions' }, [
-      android ? h('a', { class: 'btn btn-primary btn-sm', href: chrome }, 'Abrir en Chrome') : null,
-      ios ? h('button', { class: 'btn btn-primary btn-sm', onclick: () => void navigator.clipboard?.writeText(location.href).then(() => showToast('Enlace copiado')) }, 'Copiar enlace') : null,
-      h('a', { class: 'btn btn-ghost btn-sm', href: demo }, 'Probar la demo'),
+      android ? h('a', { class: 'btn btn-primary btn-sm', href: chrome }, t('Abrir en Chrome', 'Open in Chrome')) : null,
+      ios ? h('button', { class: 'btn btn-primary btn-sm', onclick: () => void navigator.clipboard?.writeText(location.href).then(() => showToast(t('Enlace copiado', 'Link copied'))) }, t('Copiar enlace', 'Copy link')) : null,
+      h('a', { class: 'btn btn-ghost btn-sm', href: demo }, t('Probar la demo', 'Try the demo')),
     ]),
   ]);
 }

@@ -5,6 +5,8 @@ import { h } from './dom';
 import { MapView } from './mapview';
 import { LIGHTS } from './race';
 import type { RaceSummary } from './remote';
+import { t } from './i18n';
+import { enOrdinal, enSuffix } from './racestrip';
 import { goLandscape } from './shell';
 import { toKmh } from './stats';
 import { TiltSteer } from './tilt';
@@ -81,7 +83,7 @@ export class RaceHud {
     this.wheel = h('div', { class: 'hud-wheel', 'aria-hidden': 'true' });
     this.wheel.innerHTML = `<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="none" stroke="currentColor" stroke-width="6"/><circle cx="32" cy="32" r="6" fill="currentColor"/><path d="M8 30 H26 M38 30 H56 M32 38 V58" stroke="currentColor" stroke-width="6" stroke-linecap="round"/><path d="M27 6 h10" stroke="var(--accent)" stroke-width="6" stroke-linecap="round"/></svg>`;
     this.gasFill = h('div', { class: 'hud-gas-fill' });
-    this.gas = h('div', { class: 'hud-gas', role: 'slider', 'aria-label': 'Acelerador', 'aria-valuemin': '0', 'aria-valuemax': String(MAX_SPEED), tabindex: '0' }, [
+    this.gas = h('div', { class: 'hud-gas', role: 'slider', 'aria-label': t('Acelerador', 'Throttle'), 'aria-valuemin': '0', 'aria-valuemax': String(MAX_SPEED), tabindex: '0' }, [
       this.gasFill,
       h('span', { class: 'hud-pedal-label' }, 'GAS'),
     ]);
@@ -92,7 +94,7 @@ export class RaceHud {
 
     const weapons = h('div', { class: 'hud-weapons' },
       WEAPONS.map((w) => {
-        const b = h('button', { class: `hud-weapon is-${w.id}`, 'aria-label': `${w.name}, ${w.energy} de energía`, ...tap(() => model.fire(w.id), 0) }, [
+        const b = h('button', { class: `hud-weapon is-${w.id}`, 'aria-label': t(`${w.name}, ${w.energy} de energía`, `${w.name}, ${w.energy} energy`), ...tap(() => model.fire(w.id), 0) }, [
           h('span', { class: 'hud-weapon-icon' }, WEAPON_ICONS[w.id]),
           h('span', { class: 'hud-weapon-name' }, w.name),
         ]);
@@ -110,24 +112,24 @@ export class RaceHud {
         this.target,
       ]),
       this.goalEl,
-      h('button', { class: 'hud-pause', onclick: () => model.exit(), 'aria-label': 'Parar la carrera' }, '⏸'),
-      h('button', { class: 'hud-map', onclick: () => model.openStandings(), 'aria-label': 'Ver clasificación' }, this.map.el),
+      h('button', { class: 'hud-pause', onclick: () => model.exit(), 'aria-label': t('Parar la carrera', 'Stop the race') }, '⏸'),
+      h('button', { class: 'hud-map', onclick: () => model.openStandings(), 'aria-label': t('Ver clasificación', 'See standings') }, this.map.el),
       this.count,
-      h('div', { class: 'hud-brake', 'aria-label': 'Freno', role: 'button', ...tap(() => car.brake(), 50) }, [h('span', { class: 'hud-pedal-label' }, 'FRENO')]),
+      h('div', { class: 'hud-brake', 'aria-label': t('Freno', 'Brake'), role: 'button', ...tap(() => car.brake(), 50) }, [h('span', { class: 'hud-pedal-label' }, t('FRENO', 'BRAKE'))]),
       h('div', { class: 'hud-center' }, [
-        h('button', { class: 'hud-lane is-left', 'aria-label': 'Carril izquierdo', ...tap(() => car.laneLeft()) }, '◀'),
+        h('button', { class: 'hud-lane is-left', 'aria-label': t('Carril izquierdo', 'Left lane'), ...tap(() => car.laneLeft()) }, '◀'),
         h('div', { class: 'hud-speed' }, [this.wheel, h('div', { class: 'hud-speed-read' }, [this.speed, h('span', { class: 'hud-speed-unit' }, 'km/h'), this.speedSub])]),
-        h('button', { class: 'hud-lane is-right', 'aria-label': 'Carril derecho', ...tap(() => car.laneRight()) }, '▶'),
+        h('button', { class: 'hud-lane is-right', 'aria-label': t('Carril derecho', 'Right lane'), ...tap(() => car.laneRight()) }, '▶'),
         h('div', { class: 'hud-tilt-actions' }, [
-          h('button', { class: 'hud-mini', onclick: () => this.tilt?.recenter() }, 'Centrar'),
+          h('button', { class: 'hud-mini', onclick: () => this.tilt?.recenter() }, t('Centrar', 'Center')),
           h('button', {
             class: 'hud-mini',
             onclick: () => {
               TiltSteer.inverted = !TiltSteer.inverted;
               this.tilt?.recenter();
-              model.toast(TiltSteer.inverted ? 'Giro invertido' : 'Giro normal');
+              model.toast(TiltSteer.inverted ? t('Giro invertido', 'Steering inverted') : t('Giro normal', 'Steering normal'));
             },
-          }, 'Invertir'),
+          }, t('Invertir', 'Invert')),
           this.tiltBtn,
         ]),
       ]),
@@ -135,10 +137,10 @@ export class RaceHud {
       this.gas,
       h('div', { class: 'rotate-hint hud-rotate' }, [
         h('div', { class: 'rotate-phone', 'aria-hidden': 'true' }),
-        h('p', {}, 'Gira el móvil y sujétalo en horizontal, como un volante.'),
+        h('p', {}, t('Gira el móvil y sujétalo en horizontal, como un volante.', 'Turn your phone sideways and hold it like a steering wheel.')),
         h('div', { class: 'tilt-actions' }, [
-          h('button', { class: 'btn btn-primary', onclick: () => void goLandscape() }, 'Poner en horizontal'),
-          h('button', { class: 'btn btn-ghost', onclick: () => this.el.classList.add('is-portrait-ok') }, 'Seguir en vertical'),
+          h('button', { class: 'btn btn-primary', onclick: () => void goLandscape() }, t('Poner en horizontal', 'Go landscape')),
+          h('button', { class: 'btn btn-ghost', onclick: () => this.el.classList.add('is-portrait-ok') }, t('Seguir en vertical', 'Stay in portrait')),
         ]),
       ]),
     ]);
@@ -157,19 +159,26 @@ export class RaceHud {
     const r = m.race();
     const meIdx = r ? r.standings.findIndex((x) => x.me) : -1;
     const mine = r?.standings[meIdx];
-    this.pos.textContent = mine ? String(mine.place ?? meIdx + 1) : '–';
-    this.posOf.textContent = r ? `º/${r.standings.length}` : '';
-    this.lap.textContent = !r || r.phase === 'grid' || r.phase === 'countdown' ? `${r?.totalLaps ?? ''} VUELTAS` : mine?.place ? 'META' : `VUELTA ${Math.min((mine?.laps ?? 0) + 1, r.totalLaps)}/${r.totalLaps}`;
+    const myPos = mine ? (mine.place ?? meIdx + 1) : undefined;
+    this.pos.textContent = myPos ? String(myPos) : '–';
+    this.posOf.textContent = r ? t(`º/${r.standings.length}`, `${myPos ? enSuffix(myPos) : ''}/${r.standings.length}`) : '';
+    const lapNow = r ? Math.min((mine?.laps ?? 0) + 1, r.totalLaps) : 0;
+    this.lap.textContent =
+      !r || r.phase === 'grid' || r.phase === 'countdown'
+        ? t(`${r?.totalLaps ?? ''} VUELTAS`, `${r?.totalLaps ?? ''} ${r?.totalLaps === 1 ? 'LAP' : 'LAPS'}`)
+        : mine?.place
+          ? t('META', 'FINISH')
+          : t(`VUELTA ${lapNow}/${r.totalLaps}`, `LAP ${lapNow}/${r.totalLaps}`);
 
     // Countdown and big messages
     const phase = r?.phase;
     if (phase === 'running' && this.lastPhase === 'countdown') {
-      this.flash('¡YA!');
+      this.flash(t('¡YA!', 'GO!'));
     }
     this.lastPhase = phase;
-    if (phase === 'grid') this.showCount('A LA SALIDA', 0);
-    else if (phase === 'countdown') this.showCount('PREPARADOS', r!.lights);
-    else if (mine?.place) this.showCount(mine.place === 1 ? '¡GANAS!' : `${mine.place}º`, 0, true);
+    if (phase === 'grid') this.showCount(t('A LA SALIDA', 'TO THE GRID'), 0);
+    else if (phase === 'countdown') this.showCount(t('PREPARADOS', 'GET READY'), r!.lights);
+    else if (mine?.place) this.showCount(mine.place === 1 ? t('¡GANAS!', 'YOU WIN!') : t(`${mine.place}º`, enOrdinal(mine.place)), 0, true);
     else if (!this.goTimer) this.count.classList.remove('is-on');
 
     // Goal
@@ -181,7 +190,7 @@ export class RaceHud {
 
     // Speed
     this.speed.textContent = String(toKmh(s.speed));
-    this.speedSub.textContent = s.targetSpeed ? `crucero ${toKmh(s.targetSpeed)}` : '';
+    this.speedSub.textContent = s.targetSpeed ? t(`crucero ${toKmh(s.targetSpeed)}`, `cruise ${toKmh(s.targetSpeed)}`) : '';
     if (!this.dragging) this.gasFill.style.height = `${(s.targetSpeed / MAX_SPEED) * 100}%`;
     this.gas.setAttribute('aria-valuenow', String(s.targetSpeed));
 
@@ -200,16 +209,16 @@ export class RaceHud {
         b.style.setProperty('--cd', String(Math.round(cooling * 360)));
         b.classList.toggle('is-off', f.downMs > 0 || f.energy < w.energy || cooling > 0);
       }
-      if (f.downMs > 0) this.showCount('FUERA DE COMBATE', 0, true);
+      if (f.downMs > 0) this.showCount(t('FUERA DE COMBATE', 'KNOCKED OUT'), 0, true);
     }
     // Off the track or on the charger: the car can't race until it's back on the track.
     const place = carPlace(s);
     this.el.classList.toggle('is-off-track', place === 'off');
-    if (place === 'off') this.showCount('¡FUERA DE PISTA! Vuelve a ponerlo', 0, true);
-    else if (place === 'charger') this.showCount('EN EL CARGADOR', 0, true);
+    if (place === 'off') this.showCount(t('¡FUERA DE PISTA! Vuelve a ponerlo', 'OFF THE TRACK! Put it back'), 0, true);
+    else if (place === 'charger') this.showCount(t('EN EL CARGADOR', 'ON THE CHARGER'), 0, true);
 
-    const t = m.target();
-    this.target.textContent = t.hot ? `🎯 ${t.text.replace('Objetivo: ', '')}` : '';
+    const tg = m.target();
+    this.target.textContent = tg.hot ? `🎯 ${tg.text.replace(/^(Objetivo|Target): /, '')}` : '';
 
     // Gamepad: no touch controls, bigger map.
     const pad = m.padName();
@@ -228,7 +237,7 @@ export class RaceHud {
     if (this.goTimer) return;
     this.count.classList.add('is-on');
     this.count.classList.toggle('is-small', small);
-    this.count.classList.toggle('has-bulbs', !small && (lit > 0 || text === 'PREPARADOS'));
+    this.count.classList.toggle('has-bulbs', !small && (lit > 0 || text === t('PREPARADOS', 'GET READY')));
     this.countText.textContent = text;
     this.bulbs.forEach((b, i) => b.classList.toggle('is-lit', i < lit));
   }
@@ -262,7 +271,7 @@ export class RaceHud {
     const on = force ?? !this.tilt.enabled;
     if (on) {
       const ok = await this.tilt.enable();
-      if (!ok && force === undefined) this.model.toast('No se puede usar el giroscopio en este navegador');
+      if (!ok && force === undefined) this.model.toast(t('No se puede usar el giroscopio en este navegador', "Can't use the gyroscope in this browser"));
     } else this.tilt.disable();
     if (force === undefined) setTiltWanted(this.tilt.enabled);
     this.updateTilt();
@@ -271,7 +280,7 @@ export class RaceHud {
   private updateTilt(): void {
     const on = !!this.tilt?.enabled;
     this.el.classList.toggle('is-tilt', on);
-    this.tiltBtn.textContent = on ? 'Botones' : 'Volante';
+    this.tiltBtn.textContent = on ? t('Botones', 'Buttons') : t('Volante', 'Wheel');
     this.tiltBtn.hidden = !TiltSteer.available();
     const deg = Math.max(-45, Math.min(45, this.tilt?.tilt ?? 0));
     this.wheel.style.transform = `rotate(${deg * 2}deg)`;

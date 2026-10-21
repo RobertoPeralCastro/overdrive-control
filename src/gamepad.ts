@@ -1,6 +1,7 @@
 import { MAX_SPEED } from './car';
 import type { Drivable } from './cockpit';
 import type { WeaponId } from './battle';
+import { t } from './i18n';
 
 /**
  * Gamepads over USB or Bluetooth (both show up through the browser's Gamepad API; the
@@ -39,19 +40,19 @@ export type PadAction = 'throttle' | 'brake' | 'left' | 'right' | 'faster' | 'sl
 export type PadMap = Record<PadAction, PadInput[]>;
 
 export const PAD_ACTIONS: { id: PadAction; name: string; hint?: string }[] = [
-  { id: 'throttle', name: 'Acelerar', hint: 'Con recorrido: gatillo o stick. Cuanto más lo aprietas, más rápido.' },
-  { id: 'brake', name: 'Frenar' },
-  { id: 'left', name: 'Carril izquierdo' },
-  { id: 'right', name: 'Carril derecho' },
-  { id: 'faster', name: 'Más velocidad (crucero)' },
-  { id: 'slower', name: 'Menos velocidad (crucero)' },
-  { id: 'uturn', name: 'Media vuelta' },
-  { id: 'blaster', name: 'Láser' },
-  { id: 'missile', name: 'Misil' },
-  { id: 'pulse', name: 'Pulso' },
-  { id: 'shield', name: 'Escudo' },
-  { id: 'start', name: 'Empezar carrera' },
-  { id: 'stop', name: 'Frenar todos' },
+  { id: 'throttle', name: t('Acelerar', 'Throttle'), hint: t('Con recorrido: gatillo o stick. Cuanto más lo aprietas, más rápido.', 'Analog: trigger or stick. The harder you press, the faster you go.') },
+  { id: 'brake', name: t('Frenar', 'Brake') },
+  { id: 'left', name: t('Carril izquierdo', 'Left lane') },
+  { id: 'right', name: t('Carril derecho', 'Right lane') },
+  { id: 'faster', name: t('Más velocidad (crucero)', 'Speed up (cruise)') },
+  { id: 'slower', name: t('Menos velocidad (crucero)', 'Slow down (cruise)') },
+  { id: 'uturn', name: t('Media vuelta', 'U-turn') },
+  { id: 'blaster', name: t('Láser', 'Laser') },
+  { id: 'missile', name: t('Misil', 'Missile') },
+  { id: 'pulse', name: t('Pulso', 'Pulse') },
+  { id: 'shield', name: t('Escudo', 'Shield') },
+  { id: 'start', name: t('Empezar carrera', 'Start race') },
+  { id: 'stop', name: t('Frenar todos', 'Stop all') },
 ];
 
 const b = (index: number): PadInput => ({ kind: 'button', index });
@@ -114,19 +115,39 @@ export function actionValue(pad: Gamepad, inputs: PadInput[]): number {
   return inputs.reduce((m, i) => Math.max(m, inputValue(pad, i)), 0);
 }
 
-const BUTTON_NAMES = ['A / ✕', 'B / ○', 'X / □', 'Y / △', 'LB / L1', 'RB / R1', 'LT / L2', 'RT / R2', 'Select / Share', 'Start / Options', 'L3 (pulsar stick izq.)', 'R3 (pulsar stick der.)', 'Cruceta ↑', 'Cruceta ↓', 'Cruceta ←', 'Cruceta →', 'Botón central'];
+const BUTTON_NAMES = [
+  'A / ✕',
+  'B / ○',
+  'X / □',
+  'Y / △',
+  'LB / L1',
+  'RB / R1',
+  'LT / L2',
+  'RT / R2',
+  'Select / Share',
+  'Start / Options',
+  t('L3 (pulsar stick izq.)', 'L3 (left stick click)'),
+  t('R3 (pulsar stick der.)', 'R3 (right stick click)'),
+  t('Cruceta ↑', 'D-pad ↑'),
+  t('Cruceta ↓', 'D-pad ↓'),
+  t('Cruceta ←', 'D-pad ←'),
+  t('Cruceta →', 'D-pad →'),
+  t('Botón central', 'Home button'),
+];
+const LEFT_STICK = t('Stick izq.', 'Left stick');
+const RIGHT_STICK = t('Stick der.', 'Right stick');
 const AXIS_NAMES: [string, string, string][] = [
-  ['Stick izq.', '←', '→'],
-  ['Stick izq.', '↑', '↓'],
-  ['Stick der.', '←', '→'],
-  ['Stick der.', '↑', '↓'],
+  [LEFT_STICK, '←', '→'],
+  [LEFT_STICK, '↑', '↓'],
+  [RIGHT_STICK, '←', '→'],
+  [RIGHT_STICK, '↑', '↓'],
 ];
 
 /** "RT / R2", "Stick der. ↑", or "Botón 7" / "Eje 1 −" on pads without the standard layout. */
 export function inputLabel(input: PadInput, standard = true): string {
-  if (input.kind === 'button') return (standard && BUTTON_NAMES[input.index]) || `Botón ${input.index}`;
+  if (input.kind === 'button') return (standard && BUTTON_NAMES[input.index]) || t(`Botón ${input.index}`, `Button ${input.index}`);
   const a = standard ? AXIS_NAMES[input.index] : undefined;
-  return a ? `${a[0]} ${input.dir < 0 ? a[1] : a[2]}` : `Eje ${input.index} ${input.dir < 0 ? '−' : '+'}`;
+  return a ? `${a[0]} ${input.dir < 0 ? a[1] : a[2]}` : t(`Eje ${input.index} ${input.dir < 0 ? '−' : '+'}`, `Axis ${input.index} ${input.dir < 0 ? '−' : '+'}`);
 }
 
 export const sameInput = (a: PadInput, b: PadInput) => a.kind === b.kind && a.index === b.index && (a.kind === 'button' || a.dir === (b as typeof a).dir);
@@ -159,7 +180,7 @@ export class Gamepads extends EventTarget {
     super();
     if (!('getGamepads' in navigator)) return;
     window.addEventListener('gamepadconnected', (e) => {
-      hooks.notify(`Mando ${e.gamepad.index + 1} conectado: ${padName(e.gamepad)}`);
+      hooks.notify(t(`Mando ${e.gamepad.index + 1} conectado: ${padName(e.gamepad)}`, `Controller ${e.gamepad.index + 1} connected: ${padName(e.gamepad)}`));
       this.dispatchEvent(new Event('change'));
       if (!this.running) {
         this.running = true;
@@ -167,7 +188,7 @@ export class Gamepads extends EventTarget {
       }
     });
     window.addEventListener('gamepaddisconnected', (e) => {
-      hooks.notify(`Mando ${e.gamepad.index + 1} desconectado`);
+      hooks.notify(t(`Mando ${e.gamepad.index + 1} desconectado`, `Controller ${e.gamepad.index + 1} disconnected`));
       this.state.delete(e.gamepad.index);
       this.dispatchEvent(new Event('change'));
     });
@@ -260,5 +281,5 @@ export class Gamepads extends EventTarget {
 }
 
 export function padName(p: Gamepad): string {
-  return p.id.split('(')[0].trim() || `Mando ${p.index + 1}`;
+  return p.id.split('(')[0].trim() || t(`Mando ${p.index + 1}`, `Controller ${p.index + 1}`);
 }

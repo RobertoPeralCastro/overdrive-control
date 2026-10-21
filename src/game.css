@@ -1514,3 +1514,39 @@ body:has(.hud) .toast.is-visible {
     padding-top: 4px;
   }
 }
+
+/* Language switch at the bottom of the main menu */
+.lang-switch {
+  justify-self: center;
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+}
+.lang-switch button {
+  min-width: 44px;
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--display);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+.lang-switch button:hover:not(.is-on) {
+  color: var(--text);
+}
+.lang-switch button.is-on {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #111;
+  cursor: default;
+}
+.lang-switch button:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}

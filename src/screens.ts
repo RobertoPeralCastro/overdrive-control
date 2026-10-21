@@ -6,6 +6,7 @@ import { carPlace, placeText, type Car } from './car';
 import { COLORS } from './cockpit';
 import { h, icon } from './dom';
 import type { Gamepads } from './gamepad';
+import { lang, manualUrl, setLang, t, type Lang } from './i18n';
 import { MapView, fieldSource } from './mapview';
 import type { Driver, Race } from './race';
 import { sound } from './sound';
@@ -55,7 +56,7 @@ export class HomeScreen {
 
   constructor(private d: ScreenDeps) {
     this.hero = h('div', { class: 'hero-car' });
-    this.raceBtn = h('button', { class: 'btn btn-primary menu-race', onclick: () => d.next() }, [h('span', {}, 'Carrera'), h('small', {}, 'rápida')]);
+    this.raceBtn = h('button', { class: 'btn btn-primary menu-race', onclick: () => d.next() }, [h('span', {}, t('Carrera', 'Quick')), h('small', {}, t('rápida', 'race'))]);
     this.campaignTile = h('button', { class: 'menu-tile is-campaign', onclick: () => d.campaign() });
     this.garageTile = h('button', { class: 'menu-tile is-garage', onclick: () => d.garage() });
     this.el = h('section', { class: 'home' }, [
@@ -64,9 +65,10 @@ export class HomeScreen {
       h('nav', { class: 'home-menu' }, [
         this.raceBtn,
         this.campaignTile,
-        h('button', { class: 'menu-tile is-multi', onclick: () => d.invite() }, [h('span', { class: 'menu-icon' }, '📱'), h('strong', {}, 'Multijugador'), h('small', {}, 'cada uno con su móvil')]),
+        h('button', { class: 'menu-tile is-multi', onclick: () => d.invite() }, [h('span', { class: 'menu-icon' }, '📱'), h('strong', {}, t('Multijugador', 'Multiplayer')), h('small', {}, t('cada uno con su móvil', 'each on their own phone'))]),
         this.garageTile,
       ]),
+      langSwitch(d),
     ]);
   }
 
@@ -76,24 +78,24 @@ export class HomeScreen {
     if (mine) {
       const rec = recordOf(mine);
       this.hero.replaceChildren(
-        h('button', { class: 'hero-platform', style: `--car:${mine.state.color}`, onclick: () => this.d.garage(), 'aria-label': 'Ir al garaje' }, [
+        h('button', { class: 'hero-platform', style: `--car:${mine.state.color}`, onclick: () => this.d.garage(), 'aria-label': t('Ir al garaje', 'Go to the garage') }, [
           h('img', { src: avatarFor(mine.id, mine.state.name, mine.state.color), alt: '' }),
         ]),
         h('div', { class: 'hero-name' }, mine.state.name),
         mine.ready && ['charger', 'off'].includes(carPlace(mine.state))
           ? h('div', { class: `car-place is-${carPlace(mine.state)}` }, placeText(mine.state))
-          : h('div', { class: 'hero-stats' }, rec?.races ? `🏆 ${rec.wins} · ${rec.races} carreras · ⚡ ${fmtSpeed(rec.topSpeed)}` : mine.ready ? 'Listo para correr' : 'Conectando…'),
+          : h('div', { class: 'hero-stats' }, rec?.races ? t(`🏆 ${rec.wins} · ${rec.races} carreras · ⚡ ${fmtSpeed(rec.topSpeed)}`, `🏆 ${rec.wins} · ${rec.races} ${rec.races === 1 ? 'race' : 'races'} · ⚡ ${fmtSpeed(rec.topSpeed)}`) : mine.ready ? t('Listo para correr', 'Ready to race') : t('Conectando…', 'Connecting…')),
       );
     } else {
       this.hero.replaceChildren(
         h('button', { class: 'hero-platform is-empty', onclick: () => this.d.addCar() }, [h('span', {}, '+')]),
-        h('div', { class: 'hero-name' }, this.d.demo ? 'Añade un coche simulado' : 'Conecta tu coche'),
-        h('div', { class: 'hero-stats' }, 'Enciéndelo, ponlo en la pista y tócalo aquí'),
+        h('div', { class: 'hero-name' }, this.d.demo ? t('Añade un coche simulado', 'Add a simulated car') : t('Conecta tu coche', 'Connect your car')),
+        h('div', { class: 'hero-stats' }, t('Enciéndelo, ponlo en la pista y tócalo aquí', 'Switch it on, put it on the track and tap here')),
       );
     }
     const done = completedLevels().size;
-    this.campaignTile.replaceChildren(h('span', { class: 'menu-icon' }, '🏆'), h('strong', {}, 'Campaña'), h('small', {}, `${done}/${LEVELS.length} superados`));
-    this.garageTile.replaceChildren(h('span', { class: 'menu-icon' }, '🏎️'), h('strong', {}, 'Garaje'), h('small', {}, `${cars.length} ${cars.length === 1 ? 'coche' : 'coches'}`));
+    this.campaignTile.replaceChildren(h('span', { class: 'menu-icon' }, '🏆'), h('strong', {}, t('Campaña', 'Campaign')), h('small', {}, t(`${done}/${LEVELS.length} superados`, `${done}/${LEVELS.length} cleared`)));
+    this.garageTile.replaceChildren(h('span', { class: 'menu-icon' }, '🏎️'), h('strong', {}, t('Garaje', 'Garage')), h('small', {}, `${cars.length} ${cars.length === 1 ? t('coche', 'car') : t('coches', 'cars')}`));
     this.raceBtn.disabled = !cars.some((c) => c.ready);
     this.campaignTile.disabled = !cars.some((c) => c.ready);
   }
@@ -112,28 +114,31 @@ export class CarsScreen {
   constructor(private d: ScreenDeps) {
     this.list = h('div', { class: 'car-cards' });
     this.padsLine = h('div', { class: 'race-hint pads-line' });
-    this.nextBtn = h('button', { class: 'btn btn-primary btn-lg', onclick: () => d.next() }, 'Preparar carrera ›');
+    this.nextBtn = h('button', { class: 'btn btn-primary btn-lg', onclick: () => d.next() }, t('Preparar carrera ›', 'Race setup ›'));
     const supported = d.demo || bluetoothAvailable();
     this.el = h('section', { class: 'screen' }, [
       h('header', { class: 'screen-head' }, [
-        h('p', {}, `${d.demo ? 'Modo demo · ' : ''}Desliza para ver tus coches. Toca la imagen para cambiarla, elige quién conduce y usa «Identificar» para que el coche parpadee.`),
+        h('p', {}, t(
+          `${d.demo ? 'Modo demo · ' : ''}Desliza para ver tus coches. Toca la imagen para cambiarla, elige quién conduce y usa «Identificar» para que el coche parpadee.`,
+          `${d.demo ? 'Demo mode · ' : ''}Swipe to see your cars. Tap the picture to change it, pick who drives and use “Identify” to make the car blink.`,
+        )),
         supported
           ? null
           : h('p', { class: 'warn' }, [
-              'Este navegador no tiene Bluetooth. Abre la app en ',
-              h('strong', {}, 'Chrome o Edge'),
-              ' (en iPhone, el navegador ',
+              t('Este navegador no tiene Bluetooth. Abre la app en ', 'This browser has no Bluetooth. Open the app in '),
+              h('strong', {}, t('Chrome o Edge', 'Chrome or Edge')),
+              t(' (en iPhone, el navegador ', ' (on iPhone, the '),
               h('strong', {}, 'Bluefy'),
-              '), o ',
-              h('a', { href: '?demo' }, 'prueba la demo sin coches'),
+              t('), o ', ' browser), or '),
+              h('a', { href: '?demo' }, t('prueba la demo sin coches', 'try the demo without cars')),
               '.',
             ]),
       ]),
       this.list,
       h('div', { class: 'screen-actions' }, [
-        h('button', { class: 'btn btn-ghost', onclick: () => d.addCar() }, [icon('bluetooth'), d.demo ? 'Añadir coche simulado' : 'Conectar coche']),
-        h('button', { class: 'btn btn-ghost', onclick: () => d.invite() }, '📱 Invitar a otro móvil'),
-        h('a', { class: 'btn btn-ghost', href: 'manual.html', target: '_blank', rel: 'noopener' }, '📖 Ayuda'),
+        h('button', { class: 'btn btn-ghost', onclick: () => d.addCar() }, [icon('bluetooth'), d.demo ? t('Añadir coche simulado', 'Add simulated car') : t('Conectar coche', 'Connect car')]),
+        h('button', { class: 'btn btn-ghost', onclick: () => d.invite() }, t('📱 Invitar a otro móvil', '📱 Invite another phone')),
+        h('a', { class: 'btn btn-ghost', href: manualUrl(), target: '_blank', rel: 'noopener' }, t('📖 Ayuda', '📖 Help')),
       ]),
       this.padsLine,
       h('footer', { class: 'screen-foot' }, this.nextBtn),
@@ -147,13 +152,13 @@ export class CarsScreen {
     this.list.replaceChildren(
       ...(cars.length
         ? cars.map((car) => this.card(car))
-        : [h('div', { class: 'empty-card' }, [h('p', {}, 'Todavía no hay coches. Enciéndelos, ponlos en la pista y pulsa «Conectar coche».')])]),
+        : [h('div', { class: 'empty-card' }, [h('p', {}, t('Todavía no hay coches. Enciéndelos, ponlos en la pista y pulsa «Conectar coche».', 'No cars yet. Switch them on, put them on the track and press “Connect car”.'))])]),
     );
     const pads = this.d.pads.list();
     this.padsLine.replaceChildren(
       ...(pads.length
-        ? pads.map((p) => h('button', { class: 'btn btn-ghost btn-sm', title: p.name, onclick: () => this.d.configurePad(p.index) }, `🎮 Configurar Mando ${p.index + 1}`))
-        : [h('span', {}, 'Mandos USB o Bluetooth: conéctalo y pulsa cualquier botón para que aparezca aquí.')]),
+        ? pads.map((p) => h('button', { class: 'btn btn-ghost btn-sm', title: p.name, onclick: () => this.d.configurePad(p.index) }, t(`🎮 Configurar Mando ${p.index + 1}`, `🎮 Set up Controller ${p.index + 1}`)))
+        : [h('span', {}, t('Mandos USB o Bluetooth: conéctalo y pulsa cualquier botón para que aparezca aquí.', 'USB or Bluetooth controllers: plug one in and press any button to make it show up here.'))]),
     );
     this.nextBtn.disabled = !cars.some((c) => c.ready);
   }
@@ -174,7 +179,7 @@ export class CarsScreen {
   private card(car: Car): HTMLElement {
     const s = car.state;
     const { race } = this.d;
-    const avatar = h('button', { class: 'avatar', title: 'Cambiar la imagen', 'aria-label': `Cambiar la imagen de ${s.name}` }, [
+    const avatar = h('button', { class: 'avatar', title: t('Cambiar la imagen', 'Change the picture'), 'aria-label': t(`Cambiar la imagen de ${s.name}`, `Change ${s.name}'s picture`) }, [
       h('img', { src: avatarFor(car.id, s.name, s.color), alt: '' }),
     ]);
     avatar.addEventListener('click', async () => {
@@ -189,7 +194,7 @@ export class CarsScreen {
         h('div', { class: 'car-card-title' }, [
           h('span', { class: 'chip-dot' }),
           h('strong', {}, `${guest ? '📱 ' : ''}${s.name}`),
-          h('span', { class: 'car-card-meta' }, s.status === 'ready' ? '' : s.status === 'disconnected' ? 'desconectado' : 'conectando…'),
+          h('span', { class: 'car-card-meta' }, s.status === 'ready' ? '' : s.status === 'disconnected' ? t('desconectado', 'disconnected') : t('conectando…', 'connecting…')),
         ]),
         s.status === 'ready' ? h('div', { class: `car-place is-${carPlace(s)}` }, placeText(s)) : null,
         recordLine(car),
@@ -202,9 +207,9 @@ export class CarsScreen {
           }),
         ),
         h('div', { class: 'car-card-actions' }, [
-          btn('Identificar', () => car.ready && this.d.identify(car), !car.ready),
-          btn('Conducir', () => this.d.drive(car), !car.ready || guest),
-          btn(guest ? 'Expulsar' : 'Quitar', () => this.d.removeCar(car), false),
+          btn(t('Identificar', 'Identify'), () => car.ready && this.d.identify(car), !car.ready),
+          btn(t('Conducir', 'Drive'), () => this.d.drive(car), !car.ready || guest),
+          btn(guest ? t('Expulsar', 'Kick') : t('Quitar', 'Remove'), () => this.d.removeCar(car), false),
         ]),
       ]),
     ]);
@@ -234,22 +239,22 @@ export class TrackScreen {
     this.lapsNum = h('span', { class: 'laps-num' });
     this.weaponsBtn = h('button', { class: 'btn btn-ghost btn-sm', onclick: () => this.toggleWeapons() });
     this.soundBtn = h('button', { class: 'btn btn-ghost btn-sm', onclick: () => this.toggleSound() });
-    this.startBtn = h('button', { class: 'btn btn-primary btn-lg', onclick: () => d.start() }, '¡A correr! ›');
-    this.campaignBtn = h('button', { class: 'btn btn-ghost btn-lg', onclick: () => d.campaign() }, 'Campaña');
+    this.startBtn = h('button', { class: 'btn btn-primary btn-lg', onclick: () => d.start() }, t('¡A correr! ›', 'Race! ›'));
+    this.campaignBtn = h('button', { class: 'btn btn-ghost btn-lg', onclick: () => d.campaign() }, t('Campaña', 'Campaign'));
     const step = (delta: number) => {
       d.race.totalLaps = Math.max(1, Math.min(50, d.race.totalLaps + delta));
       this.update();
     };
     this.el = h('section', { class: 'screen setup' }, [
-      h('header', { class: 'screen-head' }, [h('p', {}, 'Escanea la pista: un coche da una vuelta despacio y la app aprende su forma.')]),
+      h('header', { class: 'screen-head' }, [h('p', {}, t('Escanea la pista: un coche da una vuelta despacio y la app aprende su forma.', 'Scan the track: one car does a slow lap and the app learns its shape.'))]),
       h('div', { class: 'track-stage' }, this.map.el),
       this.info,
       this.scanRow,
       h('div', { class: 'race-settings' }, [
         h('div', { class: 'laps' }, [
-          h('button', { class: 'btn btn-ghost btn-sm', 'aria-label': 'Menos vueltas', onclick: () => step(-1) }, '−'),
+          h('button', { class: 'btn btn-ghost btn-sm', 'aria-label': t('Menos vueltas', 'Fewer laps'), onclick: () => step(-1) }, '−'),
           this.lapsNum,
-          h('button', { class: 'btn btn-ghost btn-sm', 'aria-label': 'Más vueltas', onclick: () => step(1) }, '+'),
+          h('button', { class: 'btn btn-ghost btn-sm', 'aria-label': t('Más vueltas', 'More laps'), onclick: () => step(1) }, '+'),
         ]),
         this.weaponsBtn,
         this.soundBtn,
@@ -267,27 +272,27 @@ export class TrackScreen {
     if (!this.scanCar || !ready.includes(this.scanCar)) this.scanCar = ready[0];
 
     this.info.textContent = field.lap
-      ? `Pista escaneada: ${describeTrack(field.lap)}`
+      ? t(`Pista escaneada: ${describeTrack(field.lap)}`, `Track scanned: ${describeTrack(field.lap)}`)
       : field.scanning
-        ? `${field.scanning.state.name} está dando la vuelta de escaneo…`
-        : 'Pista sin escanear.';
+        ? t(`${field.scanning.state.name} está dando la vuelta de escaneo…`, `${field.scanning.state.name} is doing the scan lap…`)
+        : t('Pista sin escanear.', 'Track not scanned yet.');
 
     if (!this.scanRow.contains(document.activeElement)) {
-      const pick = h('select', { class: 'driver', 'aria-label': 'Coche que escanea', onchange: (e: Event) => (this.scanCar = ready.find((c) => c.id === (e.target as HTMLSelectElement).value)) },
+      const pick = h('select', { class: 'driver', 'aria-label': t('Coche que escanea', 'Car that scans'), onchange: (e: Event) => (this.scanCar = ready.find((c) => c.id === (e.target as HTMLSelectElement).value)) },
         ready.map((c) => {
           const o = h('option', { value: c.id }, c.state.name);
           o.selected = c === this.scanCar;
           return o;
         }),
       );
-      const scanBtn = h('button', { class: `btn ${field.lap ? 'btn-ghost' : 'btn-primary'}`, onclick: () => this.scanCar && this.d.scan(this.scanCar) }, field.lap ? 'Volver a escanear' : 'Escanear pista');
+      const scanBtn = h('button', { class: `btn ${field.lap ? 'btn-ghost' : 'btn-primary'}`, onclick: () => this.scanCar && this.d.scan(this.scanCar) }, field.lap ? t('Volver a escanear', 'Scan again') : t('Escanear pista', 'Scan track'));
       scanBtn.disabled = !this.scanCar || !!field.scanning || race.live;
-      this.scanRow.replaceChildren(h('span', {}, 'Escanear con'), pick, scanBtn);
+      this.scanRow.replaceChildren(h('span', {}, t('Escanear con', 'Scan with')), pick, scanBtn);
     }
 
-    this.lapsNum.textContent = `${race.totalLaps} ${race.totalLaps === 1 ? 'vuelta' : 'vueltas'}`;
-    this.weaponsBtn.textContent = battle.enabled ? 'Armas: sí' : 'Armas: no';
-    this.soundBtn.textContent = sound.muted ? 'Sonido: no' : 'Sonido: sí';
+    this.lapsNum.textContent = `${race.totalLaps} ${race.totalLaps === 1 ? t('vuelta', 'lap') : t('vueltas', 'laps')}`;
+    this.weaponsBtn.textContent = battle.enabled ? t('Armas: sí', 'Weapons: on') : t('Armas: no', 'Weapons: off');
+    this.soundBtn.textContent = sound.muted ? t('Sonido: no', 'Sound: off') : t('Sonido: sí', 'Sound: on');
     const why = race.blocker(this.d.cars());
     this.startBtn.disabled = !!why || !!field.scanning;
     this.startBtn.title = why ?? '';
@@ -323,7 +328,10 @@ export class CampaignScreen {
     this.list = h('ol', { class: 'levels' });
     this.el = h('section', { class: 'screen' }, [
       h('header', { class: 'screen-head' }, [
-        h('p', {}, 'Diez pruebas contra la IA. Supera una para abrir la siguiente. Tu coche es el que conduces tú (pantalla o mando); los demás coches conectados hacen de rivales.'),
+        h('p', {}, t(
+          'Diez pruebas contra la IA. Supera una para abrir la siguiente. Tu coche es el que conduces tú (pantalla o mando); los demás coches conectados hacen de rivales.',
+          'Ten challenges against the AI. Clear one to unlock the next. Your car is the one you drive (screen or controller); the other connected cars are your rivals.',
+        )),
       ]),
       this.list,
     ]);
@@ -336,7 +344,7 @@ export class CampaignScreen {
       ...LEVELS.map((lv) => {
         const open = isUnlocked(lv.id, done);
         const needs = lv.rivals.length + 1;
-        const play = h('button', { class: `btn ${done.has(lv.id) ? 'btn-ghost' : 'btn-primary'} btn-sm`, onclick: () => this.d.playLevel(lv) }, done.has(lv.id) ? 'Repetir' : 'Jugar');
+        const play = h('button', { class: `btn ${done.has(lv.id) ? 'btn-ghost' : 'btn-primary'} btn-sm`, onclick: () => this.d.playLevel(lv) }, done.has(lv.id) ? t('Repetir', 'Replay') : t('Jugar', 'Play'));
         play.disabled = !open || free < needs;
         return h('li', { class: `level ${done.has(lv.id) ? 'is-done' : open ? 'is-open' : 'is-locked'}` }, [
           h('span', { class: 'level-n' }, done.has(lv.id) ? '✓' : open ? String(lv.id) : '🔒'),
@@ -344,8 +352,8 @@ export class CampaignScreen {
             h('strong', {}, lv.name),
             h('p', {}, lv.brief),
             h('p', { class: 'level-meta' }, [
-              `${lv.laps} ${lv.laps === 1 ? 'vuelta' : 'vueltas'} · ${lv.weapons ? 'con armas' : 'sin armas'} · rivales: ${lv.rivals.map((r) => AI_LEVELS[r].name.replace('IA ', '')).join(', ')}`,
-              free < needs ? ` · necesitas ${needs} coches conectados` : '',
+              `${lv.laps} ${lv.laps === 1 ? t('vuelta', 'lap') : t('vueltas', 'laps')} · ${lv.weapons ? t('con armas', 'with weapons') : t('sin armas', 'no weapons')} · ${t('rivales', 'rivals')}: ${lv.rivals.map((r) => AI_LEVELS[r].name.replace(t('IA ', ' AI'), '')).join(', ')}`,
+              free < needs ? t(` · necesitas ${needs} coches conectados`, ` · you need ${needs} connected cars`) : '',
             ]),
           ]),
           play,
@@ -360,14 +368,14 @@ export class CampaignScreen {
 /** This car's all-time record on this phone, in one line. */
 function recordLine(car: Car): HTMLElement | null {
   const r = recordOf(car);
-  if (!r?.races) return h('p', { class: 'car-record' }, 'Sin carreras todavía');
+  if (!r?.races) return h('p', { class: 'car-record' }, t('Sin carreras todavía', 'No races yet'));
   const bits = [
-    `🏆 ${r.wins} ${r.wins === 1 ? 'victoria' : 'victorias'}`,
-    `${r.races} ${r.races === 1 ? 'carrera' : 'carreras'}`,
-    r.podiums ? `🥉 ${r.podiums} ${r.podiums === 1 ? 'podio' : 'podios'}` : '',
+    `🏆 ${r.wins} ${r.wins === 1 ? t('victoria', 'win') : t('victorias', 'wins')}`,
+    `${r.races} ${r.races === 1 ? t('carrera', 'race') : t('carreras', 'races')}`,
+    r.podiums ? `🥉 ${r.podiums} ${r.podiums === 1 ? t('podio', 'podium') : t('podios', 'podiums')}` : '',
     r.topSpeed ? `⚡ ${fmtSpeed(r.topSpeed)}` : '',
     r.bestLapMs ? `⏱️ ${fmtTime(r.bestLapMs)}` : '',
-    r.leadMs ? `👑 ${fmtTime(r.leadMs)} en cabeza` : '',
+    r.leadMs ? t(`👑 ${fmtTime(r.leadMs)} en cabeza`, `👑 ${fmtTime(r.leadMs)} in the lead`) : '',
     r.kills ? `💥 ${r.kills}` : '',
   ].filter(Boolean);
   return h('p', { class: 'car-record' }, bits.join(' · '));
@@ -396,12 +404,12 @@ export function standingsList(race: Race, battle: Battle, cars: Car[]): HTMLElem
       const move = race.aiMove(car);
       const best = e?.lapTimes.length ? Math.min(...e.lapTimes) : undefined;
       return h('li', { class: e?.place === 1 ? 'is-winner' : '', style: `--car:${car.state.color}` }, [
-        h('span', { class: 'race-pos' }, e?.place ? medal(e.place) : `${i + 1}.º`),
+        h('span', { class: 'race-pos' }, e?.place ? medal(e.place) : ordinal(i + 1)),
         h('img', { class: 'mini-avatar', src: avatarFor(car.id, car.state.name, car.state.color), alt: '' }),
         h('span', { class: 'race-name' }, car.state.name),
-        h('span', { class: 'race-laps' }, e ? (e.place ? 'Meta' : race.phase === 'running' ? `${Math.min(e.laps + 1, race.totalLaps)}/${race.totalLaps}` : '') : ''),
-        h('span', { class: `race-time ${move === 'ram' || move === 'shove' ? 'is-rough' : ''}` }, move && MOVE_TEXT[move] ? MOVE_TEXT[move] : best ? `mejor ${(best / 1000).toFixed(2)} s` : ''),
-        f && battle.enabled && race.phase === 'running' ? h('span', { class: 'race-armor', title: 'Blindaje' }, h('span', { style: `width:${f.armor}%` })) : null,
+        h('span', { class: 'race-laps' }, e ? (e.place ? t('Meta', 'Finish') : race.phase === 'running' ? `${Math.min(e.laps + 1, race.totalLaps)}/${race.totalLaps}` : '') : ''),
+        h('span', { class: `race-time ${move === 'ram' || move === 'shove' ? 'is-rough' : ''}` }, move && MOVE_TEXT[move] ? MOVE_TEXT[move] : best ? t(`mejor ${(best / 1000).toFixed(2)} s`, `best ${(best / 1000).toFixed(2)} s`) : ''),
+        f && battle.enabled && race.phase === 'running' ? h('span', { class: 'race-armor', title: t('Blindaje', 'Armor') }, h('span', { style: `width:${f.armor}%` })) : null,
       ]);
     }),
   );
@@ -412,14 +420,14 @@ function driverSelect(race: Race, car: Car, pads: Gamepads, locked: boolean): HT
   const list = pads.list();
   const opts =
     driver.kind === 'guest'
-      ? [option('guest', '📱 Lo conduce su móvil', driver)]
+      ? [option('guest', t('📱 Lo conduce su móvil', '📱 Driven from their phone'), driver)]
       : [
-          option('screen', '👆 Tú, en esta pantalla', driver),
-          ...list.map((p) => option(`pad:${p.index}`, `🎮 Mando ${p.index + 1}`, driver)),
-          ...(driver.kind === 'pad' && !list.some((p) => p.index === driver.index) ? [option(`pad:${driver.index}`, `🎮 Mando ${driver.index + 1} (sin conectar)`, driver)] : []),
+          option('screen', t('👆 Tú, en esta pantalla', '👆 You, on this screen'), driver),
+          ...list.map((p) => option(`pad:${p.index}`, t(`🎮 Mando ${p.index + 1}`, `🎮 Controller ${p.index + 1}`), driver)),
+          ...(driver.kind === 'pad' && !list.some((p) => p.index === driver.index) ? [option(`pad:${driver.index}`, t(`🎮 Mando ${driver.index + 1} (sin conectar)`, `🎮 Controller ${driver.index + 1} (not connected)`), driver)] : []),
           ...(Object.keys(AI_LEVELS) as AiLevel[]).map((lv) => option(`ai:${lv}`, `🤖 ${AI_LEVELS[lv].name}`, driver)),
         ];
-  const select = h('select', { class: 'driver', 'aria-label': `Piloto de ${car.state.name}`, onchange: (e: Event) => race.setDriver(car, parseDriver((e.target as HTMLSelectElement).value)) }, opts);
+  const select = h('select', { class: 'driver', 'aria-label': t(`Piloto de ${car.state.name}`, `${car.state.name}'s driver`), onchange: (e: Event) => race.setDriver(car, parseDriver((e.target as HTMLSelectElement).value)) }, opts);
   select.disabled = locked || driver.kind === 'guest';
   if (driver.kind === 'ai') select.title = AI_LEVELS[driver.level].about;
   return select;
@@ -450,8 +458,37 @@ function parseDriver(v: string): Driver {
   return { kind: 'screen' };
 }
 
-const MOVE_TEXT: Partial<Record<AiMove, string>> = { ram: '¡Embistiendo!', shove: '¡Empujando!', overtake: 'Adelantando' };
+const MOVE_TEXT: Partial<Record<AiMove, string>> = { ram: t('¡Embistiendo!', 'Ramming!'), shove: t('¡Empujando!', 'Shoving!'), overtake: t('Adelantando', 'Overtaking') };
 
 export function medal(place: number): string {
-  return ['🥇', '🥈', '🥉'][place - 1] ?? `${place}.º`;
+  return ['🥇', '🥈', '🥉'][place - 1] ?? ordinal(place);
+}
+
+/** "4.º" / "4th". */
+function ordinal(n: number): string {
+  if (lang === 'es') return `${n}.º`;
+  const tens = n % 100;
+  const suffix = tens >= 11 && tens <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th';
+  return `${n}${suffix}`;
+}
+
+/** "ES | EN" at the bottom of the main menu. Switching reloads the app. */
+function langSwitch(d: ScreenDeps): HTMLElement {
+  const choice = (code: Lang, label: string, name: string) =>
+    h(
+      'button',
+      {
+        class: code === lang ? 'is-on' : '',
+        lang: code,
+        title: name,
+        'aria-pressed': String(code === lang),
+        onclick: () => {
+          if (code === lang) return;
+          if (d.cars().some((c) => c.ready) && !confirm(t('Cambiar el idioma recarga la app y desconecta los coches. ¿Seguir?', 'Changing the language reloads the app and disconnects the cars. Continue?'))) return;
+          setLang(code);
+        },
+      },
+      label,
+    );
+  return h('div', { class: 'lang-switch', role: 'group', 'aria-label': t('Idioma', 'Language') }, [choice('es', 'ES', 'Español'), choice('en', 'EN', 'English')]);
 }

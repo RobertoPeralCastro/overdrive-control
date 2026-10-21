@@ -1,6 +1,7 @@
 import type { Car } from './car';
 import { h } from './dom';
 import type { Field } from './field';
+import { t } from './i18n';
 import { describeTrack, type Turn } from './track';
 import { layoutTrack, pointOnPiece, trackPath, type TrackLayout } from './trackmap';
 
@@ -59,7 +60,7 @@ export class MapView {
       this.markers.clear();
       this.el.replaceChildren(
         h('div', { class: 'map-empty' }, [
-          h('p', {}, src.scanning ? `${src.scanning} está escaneando la pista…` : 'Escanea la pista para verla aquí.'),
+          h('p', {}, src.scanning ? t(`${src.scanning} está escaneando la pista…`, `${src.scanning} is scanning the track…`) : t('Escanea la pista para verla aquí.', 'Scan the track to see it here.')),
           src.scan && !src.scanning ? h('button', { class: 'btn btn-primary', onclick: src.scan.run }, src.scan.label) : null,
         ]),
       );
@@ -75,7 +76,7 @@ export class MapView {
     svg.setAttribute('viewBox', `${l.minX - pad} ${l.minY - pad} ${l.width + pad * 2} ${l.height + pad * 2}`);
     svg.setAttribute('class', 'map-svg');
     svg.setAttribute('role', 'img');
-    svg.setAttribute('aria-label', `Pista: ${describeTrack(src.lap)}`);
+    svg.setAttribute('aria-label', t(`Pista: ${describeTrack(src.lap)}`, `Track: ${describeTrack(src.lap)}`));
     const d = trackPath(l);
     const [a, b] = l.pieces[0];
     const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
@@ -112,8 +113,8 @@ export class MapView {
       g.querySelector('circle')!.setAttribute('fill', c.color);
       g.querySelector('text')!.textContent = c.name;
       const len = layout.lengthsMm[c.idx] ?? 560;
-      const t = Math.min(0.95, (c.speed * c.inPieceMs) / 1000 / len);
-      const p = pointOnPiece(layout, c.idx, c.dir === 1 ? t : 1 - t);
+      const f = Math.min(0.95, (c.speed * c.inPieceMs) / 1000 / len);
+      const p = pointOnPiece(layout, c.idx, c.dir === 1 ? f : 1 - f);
       g.setAttribute('transform', `translate(${p.x.toFixed(3)} ${p.y.toFixed(3)})`);
     }
     for (const [key, g] of this.markers) {
@@ -160,6 +161,6 @@ export function fieldSource(field: Field, opts: { cars: () => Car[]; scan?: (car
     turns: field.turns,
     scanning: field.scanning?.state.name,
     cars: () => fieldCars(field, opts.me),
-    scan: ready && opts.scan ? { label: `Escanear con ${ready.state.name}`, run: () => opts.scan!(ready) } : undefined,
+    scan: ready && opts.scan ? { label: t(`Escanear con ${ready.state.name}`, `Scan with ${ready.state.name}`), run: () => opts.scan!(ready) } : undefined,
   };
 }

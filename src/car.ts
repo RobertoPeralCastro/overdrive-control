@@ -1,3 +1,4 @@
+import { t } from './i18n';
 import { LightEffect, MODEL_NAMES, Msg, TurnType, V4_SPEED_MIN_VERSION, parseMessage, type VehicleMessage } from './protocol';
 import { sleep, type Transport } from './transport';
 
@@ -48,13 +49,13 @@ export function placeText(s: CarState): string {
   const pct = s.battery !== undefined ? ` · ${s.battery}%` : '';
   switch (carPlace(s)) {
     case 'charger':
-      return s.chargedBattery ? `🔌 Cargado${pct}` : `🔌 Cargando${pct}`;
+      return s.chargedBattery ? t(`🔌 Cargado${pct}`, `🔌 Charged${pct}`) : t(`🔌 Cargando${pct}`, `🔌 Charging${pct}`);
     case 'track':
-      return `🛣️ En la pista${pct}`;
+      return t(`🛣️ En la pista${pct}`, `🛣️ On the track${pct}`);
     case 'off':
-      return `⚠️ Fuera de la pista${pct}`;
+      return t(`⚠️ Fuera de la pista${pct}`, `⚠️ Off the track${pct}`);
     default:
-      return s.status === 'ready' ? `Listo${pct}` : '';
+      return s.status === 'ready' ? t(`Listo${pct}`, `Ready${pct}`) : '';
   }
 }
 
@@ -146,7 +147,7 @@ export class Car extends EventTarget {
       }
     }
     clearInterval(this.batteryTimer);
-    this.update({ status: 'disconnected', error: 'Se perdió la conexión' });
+    this.update({ status: 'disconnected', error: t('Se perdió la conexión', 'Connection lost') });
   }
 
   async disconnect(): Promise<void> {
@@ -305,11 +306,11 @@ export class Car extends EventTarget {
   }
 }
 
-function carName(t: Transport): string {
-  if (t.modelId !== undefined && MODEL_NAMES[t.modelId]) return MODEL_NAMES[t.modelId];
+function carName(tr: Transport): string {
+  if (tr.modelId !== undefined && MODEL_NAMES[tr.modelId]) return MODEL_NAMES[tr.modelId];
   // Cars advertise a name like "Drive" followed by garbage bytes on some phones.
-  const clean = t.deviceName.replace(/[^\x20-\x7e]/g, '').trim();
-  return clean || 'Coche';
+  const clean = tr.deviceName.replace(/[^\x20-\x7e]/g, '').trim();
+  return clean || t('Coche', 'Car');
 }
 
 export function hexToRgb(hex: string): [number, number, number] {

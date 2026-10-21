@@ -1,10 +1,11 @@
 import { Cockpit, REPEAT_KEYS, keyAction, vibrate } from './cockpit';
 import { h, icon } from './dom';
 import { Gamepads } from './gamepad';
+import { lang, setLang, t, type Lang } from './i18n';
 import { MapView } from './mapview';
 import { joinRoom, normalizeCode } from './net';
 import { RaceHud } from './hud';
-import { RaceStrip } from './racestrip';
+import { RaceStrip, enOrdinal } from './racestrip';
 import { awardsList } from './screens';
 import { GuestSession, guestModel, type GuestEvent, type RaceSummary } from './remote';
 import { browserBanner, errText, keepAwake, showToast, toastElement } from './shell';
@@ -32,16 +33,17 @@ export function startGuest(rawCode: string, demo: boolean): void {
 
   const app = document.getElementById('app')!;
   const main = h('main', { class: 'stage stage-stack' });
-  const strip = new RaceStrip(() => openSheet(), 'Esperando a que el anfitrión empiece la carrera');
-  const sheet = h('dialog', { class: 'sheet', 'aria-label': 'Clasificación' });
+  const strip = new RaceStrip(() => openSheet(), t('Esperando a que el anfitrión empiece la carrera', 'Waiting for the host to start the race'));
+  const sheet = h('dialog', { class: 'sheet', 'aria-label': t('Clasificación', 'Standings') });
   const map = new MapView(() => (cockpit ? cockpit.model.map() : { turns: [], cars: () => [] }));
 
   app.append(
     h('header', { class: 'topbar' }, [
-      h('div', { class: 'brand' }, [h('span', { class: 'brand-mark' }), 'Overdrive', h('em', {}, ' invitado')]),
+      h('div', { class: 'brand' }, [h('span', { class: 'brand-mark' }), 'Overdrive', h('em', {}, t(' invitado', ' guest'))]),
       h('div', { class: 'top-actions' }, [
-        h('span', { class: 'room-tag', title: 'Código de la partida' }, `📱 ${code.toUpperCase()}`),
-        h('button', { class: 'btn btn-stop', onclick: () => session?.control.brake(), title: 'Frenar mi coche (Esc)' }, 'STOP'),
+        langSwitch(),
+        h('span', { class: 'room-tag', title: t('Código de la partida', 'Game code') }, `📱 ${code.toUpperCase()}`),
+        h('button', { class: 'btn btn-stop', onclick: () => session?.control.brake(), title: t('Frenar mi coche (Esc)', 'Brake my car (Esc)') }, 'STOP'),
       ]),
     ]),
     ...[browserBanner(demo || bluetoothAvailable())].filter((x): x is HTMLElement => !!x),
@@ -62,13 +64,13 @@ export function startGuest(rawCode: string, demo: boolean): void {
         void transport?.disconnect();
         transport = undefined;
         stage = 'closed';
-        error = 'El anfitrión ha quitado tu coche de la partida.';
+        error = t('El anfitrión ha quitado tu coche de la partida.', 'The host removed your car from the game.');
         render();
       });
       session.addEventListener('close', () => {
         if (stage === 'closed') return;
         stage = 'closed';
-        error = 'Se perdió la conexión con el anfitrión.';
+        error = t('Se perdió la conexión con el anfitrión.', 'Lost the connection to the host.');
         render();
       });
       stage = transport ? 'driving' : 'joined';
@@ -84,28 +86,28 @@ export function startGuest(rawCode: string, demo: boolean): void {
     sound.unlock();
     // This tap is our chance to get the motion sensor for tilt steering during the race.
     TiltSteer.prime();
-    let t: Transport;
+    let tr: Transport;
     // Groundshock, Nuke or Guardian: not the models the host's demo starts with.
-    if (demo) t = new SimTransport([8, 11, 12][Math.floor(Math.random() * 3)]);
+    if (demo) tr = new SimTransport([8, 11, 12][Math.floor(Math.random() * 3)]);
     else {
       try {
-        t = await pickCar();
+        tr = await pickCar();
       } catch (e) {
         if (!/cancel/i.test(errText(e))) showToast(errText(e));
         return;
       }
     }
     try {
-      await t.connect();
+      await tr.connect();
     } catch (e) {
-      showToast(`No se pudo conectar el coche: ${errText(e)}`);
+      showToast(t(`No se pudo conectar el coche: ${errText(e)}`, `Couldn't connect the car: ${errText(e)}`));
       return;
     }
-    transport = t;
-    session!.attachCar(t);
+    transport = tr;
+    session!.attachCar(tr);
     // When the car drops, tell the host (attachCar did) and try to get it back.
-    const told = t.onDisconnect;
-    t.onDisconnect = () => {
+    const told = tr.onDisconnect;
+    tr.onDisconnect = () => {
       told();
       void reconnectCar();
     };
@@ -115,19 +117,19 @@ export function startGuest(rawCode: string, demo: boolean): void {
   }
 
   async function reconnectCar(): Promise<void> {
-    const t = transport;
-    if (!t || !session) return;
+    const tr = transport;
+    if (!tr || !session) return;
     for (let i = 0; i < 3; i++) {
       await sleep(1000 * (i + 1));
       try {
-        await t.connect();
+        await tr.connect();
         session.announceCar();
         return;
       } catch {
         /* try again */
       }
     }
-    showToast('No se pudo reconectar tu coche');
+    showToast(t('No se pudo reconectar tu coche', "Couldn't reconnect your car"));
   }
 
   function leave(): void {
@@ -182,14 +184,14 @@ export function startGuest(rawCode: string, demo: boolean): void {
       hud = undefined;
     }
     if (stage === 'joining') {
-      main.replaceChildren(card([h('div', { class: 'spinner' }), h('p', {}, `Uniéndote a la partida ${code.toUpperCase()}…`)]));
+      main.replaceChildren(card([h('div', { class: 'spinner' }), h('p', {}, t(`Uniéndote a la partida ${code.toUpperCase()}…`, `Joining game ${code.toUpperCase()}…`))]));
     } else if (stage === 'error' || stage === 'closed') {
       main.replaceChildren(
         card([
           h('p', { class: 'warn' }, error),
           h('div', { class: 'empty-actions' }, [
-            h('button', { class: 'btn btn-primary', onclick: () => void join() }, 'Volver a unirme'),
-            h('a', { class: 'btn btn-ghost', href: location.pathname + (demo ? '?demo' : '') }, 'Ir a la app normal'),
+            h('button', { class: 'btn btn-primary', onclick: () => void join() }, t('Volver a unirme', 'Join again')),
+            h('a', { class: 'btn btn-ghost', href: location.pathname + (demo ? '?demo' : '') }, t('Ir a la app normal', 'Go to the regular app')),
           ]),
         ]),
       );
@@ -197,9 +199,11 @@ export function startGuest(rawCode: string, demo: boolean): void {
       const supported = demo || bluetoothAvailable();
       main.replaceChildren(
         card([
-          h('h1', {}, '¡Dentro de la partida!'),
-          h('p', {}, supported ? 'Enciende tu coche, ponlo en la pista y conéctalo. Lo conducirás desde este móvil.' : 'Este navegador no tiene Bluetooth. Usa Chrome o Edge (en iPhone, Bluefy).'),
-          supported ? h('button', { class: 'btn btn-primary btn-lg', onclick: () => void connectCar() }, [icon('bluetooth'), demo ? 'Añadir coche simulado' : 'Conectar mi coche']) : null,
+          h('h1', {}, t('¡Dentro de la partida!', "You're in the game!")),
+          h('p', {}, supported
+              ? t('Enciende tu coche, ponlo en la pista y conéctalo. Lo conducirás desde este móvil.', "Turn on your car, put it on the track and connect it. You'll drive it from this phone.")
+              : t('Este navegador no tiene Bluetooth. Usa Chrome o Edge (en iPhone, Bluefy).', 'This browser has no Bluetooth. Use Chrome or Edge (on iPhone, Bluefy).')),
+          supported ? h('button', { class: 'btn btn-primary btn-lg', onclick: () => void connectCar() }, [icon('bluetooth'), demo ? t('Añadir coche simulado', 'Add simulated car') : t('Conectar mi coche', 'Connect my car')]) : null,
         ]),
       );
     } else if (stage === 'driving' && session && !cockpit && !hud) {
@@ -223,7 +227,7 @@ export function startGuest(rawCode: string, demo: boolean): void {
     if (!r) return;
     map.update();
     sheet.replaceChildren(
-      h('div', { class: 'sheet-head' }, [h('h2', {}, raceTitle(r)), h('button', { class: 'btn btn-ghost btn-sm', onclick: () => sheet.close(), 'aria-label': 'Cerrar' }, '✕')]),
+      h('div', { class: 'sheet-head' }, [h('h2', {}, raceTitle(r)), h('button', { class: 'btn btn-ghost btn-sm', onclick: () => sheet.close(), 'aria-label': t('Cerrar', 'Close') }, '✕')]),
       ...(r.awards?.length ? [awardsList(r.awards)] : []),
       h('div', { class: 'sheet-map' }, map.el),
       h(
@@ -231,11 +235,11 @@ export function startGuest(rawCode: string, demo: boolean): void {
         { class: 'standings' },
         r.standings.map((s, i) =>
           h('li', { class: s.me ? 'is-me' : '', style: `--car:${s.color}` }, [
-            h('span', { class: 'race-pos' }, s.place ? (['🥇', '🥈', '🥉'][s.place - 1] ?? `${s.place}.º`) : `${i + 1}.º`),
+            h('span', { class: 'race-pos' }, s.place ? (['🥇', '🥈', '🥉'][s.place - 1] ?? t(`${s.place}.º`, enOrdinal(s.place))) : t(`${i + 1}.º`, enOrdinal(i + 1))),
             h('span', { class: 'chip-dot' }),
             h('span', { class: 'race-name' }, s.name),
-            h('span', { class: 'race-laps' }, s.place ? 'Meta' : r.phase === 'running' ? `${Math.min(s.laps + 1, r.totalLaps)}/${r.totalLaps}` : ''),
-            h('span', { class: 'race-time' }, s.best ? `mejor ${(s.best / 1000).toFixed(2)} s` : ''),
+            h('span', { class: 'race-laps' }, s.place ? t('Meta', 'Finish') : r.phase === 'running' ? `${Math.min(s.laps + 1, r.totalLaps)}/${r.totalLaps}` : ''),
+            h('span', { class: 'race-time' }, s.best ? t(`mejor ${(s.best / 1000).toFixed(2)} s`, `best ${(s.best / 1000).toFixed(2)} s`) : ''),
           ]),
         ),
       ),
@@ -246,7 +250,7 @@ export function startGuest(rawCode: string, demo: boolean): void {
   const pads = new Gamepads({
     carFor: () => (session?.control.ready ? session.control : undefined),
     fire: (_car, id) => session?.act({ a: 'fire', v: id }),
-    start: () => showToast('La carrera la empieza el anfitrión'),
+    start: () => showToast(t('La carrera la empieza el anfitrión', 'The host starts the race')),
     stopAll: () => session?.control.brake(),
     notify: (msg) => {
       showToast(msg);
@@ -256,7 +260,7 @@ export function startGuest(rawCode: string, demo: boolean): void {
 
   function padName(): string | undefined {
     const pad = pads.list()[0];
-    return pad && `Mando ${pad.index + 1} (${pad.name})`;
+    return pad && t(`Mando ${pad.index + 1} (${pad.name})`, `Controller ${pad.index + 1} (${pad.name})`);
   }
 
   window.addEventListener('keydown', (e) => {
@@ -270,6 +274,25 @@ export function startGuest(rawCode: string, demo: boolean): void {
     }
   });
 
+  /** ES | EN: changing it reloads the page, so warn first if a car would be dropped. */
+  function langSwitch(): HTMLElement {
+    const option = (l: Lang, label: string) =>
+      h(
+        'button',
+        {
+          class: l === lang ? 'is-on' : '',
+          'aria-pressed': String(l === lang),
+          onclick: () => {
+            if (l === lang) return;
+            if (transport && !confirm(t('Cambiar el idioma recarga la app y desconecta tu coche. ¿Seguir?', 'Changing the language reloads the app and disconnects your car. Continue?'))) return;
+            setLang(l);
+          },
+        },
+        label,
+      );
+    return h('div', { class: 'lang-switch', role: 'group', 'aria-label': t('Idioma', 'Language') }, [option('es', 'ES'), option('en', 'EN')]);
+  }
+
   void join();
 }
 
@@ -278,8 +301,9 @@ function card(children: (Node | null)[]): HTMLElement {
 }
 
 function raceTitle(r: RaceSummary): string {
-  if (r.phase === 'running') return `Carrera · ${r.totalLaps} ${r.totalLaps === 1 ? 'vuelta' : 'vueltas'}`;
-  if (r.phase === 'finished') return 'Carrera terminada';
-  if (r.phase === 'countdown') return 'Preparados…';
-  return 'Carrera';
+  if (r.phase === 'running')
+    return t(`Carrera · ${r.totalLaps} ${r.totalLaps === 1 ? 'vuelta' : 'vueltas'}`, `Race · ${r.totalLaps} ${r.totalLaps === 1 ? 'lap' : 'laps'}`);
+  if (r.phase === 'finished') return t('Carrera terminada', 'Race over');
+  if (r.phase === 'countdown') return t('Preparados…', 'Get ready…');
+  return t('Carrera', 'Race');
 }

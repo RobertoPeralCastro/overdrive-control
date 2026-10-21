@@ -2,6 +2,7 @@ import { MAX_ARMOR, MAX_ENERGY, WEAPONS, type WeaponId } from './battle';
 import { MAX_SPEED, type CarState } from './car';
 import { h, icon } from './dom';
 import { MapView, type MapSource } from './mapview';
+import { t } from './i18n';
 import { goLandscape } from './shell';
 import { TiltSteer } from './tilt';
 
@@ -101,13 +102,13 @@ export class Cockpit {
     this.throttleFill = h('div', { class: 'throttle-fill' });
     this.throttle = h(
       'div',
-      { class: 'throttle', role: 'slider', tabindex: '0', 'aria-label': 'Acelerador', 'aria-valuemin': '0', 'aria-valuemax': String(MAX_SPEED) },
-      [this.throttleFill, h('div', { class: 'throttle-label' }, 'ACELERADOR')],
+      { class: 'throttle', role: 'slider', tabindex: '0', 'aria-label': t('Acelerador', 'Throttle'), 'aria-valuemin': '0', 'aria-valuemax': String(MAX_SPEED) },
+      [this.throttleFill, h('div', { class: 'throttle-label' }, t('ACELERADOR', 'THROTTLE'))],
     );
     this.bindThrottle();
 
     this.overlay = h('div', { class: 'overlay' });
-    this.swatches = h('div', { class: 'swatches', role: 'radiogroup', 'aria-label': 'Color de luces' },
+    this.swatches = h('div', { class: 'swatches', role: 'radiogroup', 'aria-label': t('Color de luces', 'Light color') },
       COLORS.map((c) => h('button', { class: 'swatch', role: 'radio', style: `--c:${c}`, 'data-color': c, 'aria-label': `Color ${c}`, onclick: () => car.setColor(c) })),
     );
 
@@ -115,7 +116,7 @@ export class Cockpit {
     this.energyFill = h('span', { class: 'meter-fill' });
     this.targetLine = h('div', { class: 'target-line' });
     this.trackText = h('span', { class: 'track-text' });
-    this.scanButton = h('button', { class: 'btn btn-ghost btn-sm', onclick: () => model.scan(), title: 'El coche da una vuelta despacio para aprender la pista' }, 'Escanear pista');
+    this.scanButton = h('button', { class: 'btn btn-ghost btn-sm', onclick: () => model.scan(), title: t('El coche da una vuelta despacio para aprender la pista', 'The car does a slow lap to learn the track') }, t('Escanear pista', 'Scan track'));
     this.map = new MapView(() => model.map());
     this.padText = h('p', { class: 'pad-text' });
     this.touchToggle = h('button', {
@@ -129,19 +130,19 @@ export class Cockpit {
     this.tiltDot = h('span', { class: 'tilt-dot' });
     this.tiltBtn = h('button', { class: 'btn btn-ghost btn-sm', onclick: () => void this.toggleTilt() });
     this.tiltBar = h('div', { class: 'tilt-bar' }, [
-      h('span', { class: 'tilt-label' }, '📱 Inclina para cambiar de carril'),
+      h('span', { class: 'tilt-label' }, t('📱 Inclina para cambiar de carril', '📱 Tilt to change lanes')),
       h('div', { class: 'tilt-track', 'aria-hidden': 'true' }, [h('span', { class: 'tilt-mark is-left' }), h('span', { class: 'tilt-mark is-right' }), this.tiltDot]),
       h('div', { class: 'tilt-actions' }, [
-        h('button', { class: 'btn btn-ghost btn-sm', onclick: () => this.tilt?.recenter() }, 'Centrar'),
+        h('button', { class: 'btn btn-ghost btn-sm', onclick: () => this.tilt?.recenter() }, t('Centrar', 'Center')),
         h('button', {
           class: 'btn btn-ghost btn-sm',
-          title: 'Si al inclinar a la derecha el coche se va a la izquierda',
+          title: t('Si al inclinar a la derecha el coche se va a la izquierda', 'If tilting right sends the car left'),
           onclick: () => {
             TiltSteer.inverted = !TiltSteer.inverted;
             this.tilt?.recenter();
-            model.toast(TiltSteer.inverted ? 'Giro invertido' : 'Giro normal');
+            model.toast(TiltSteer.inverted ? t('Giro invertido', 'Steering inverted') : t('Giro normal', 'Steering normal'));
           },
-        }, 'Invertir'),
+        }, t('Invertir', 'Invert')),
         this.tiltBtn,
       ]),
     ]);
@@ -150,10 +151,10 @@ export class Cockpit {
     // Racing on a phone: hold it sideways like a steering wheel.
     this.rotateHint = h('div', { class: 'rotate-hint' }, [
       h('div', { class: 'rotate-phone', 'aria-hidden': 'true' }),
-      h('p', {}, 'Gira el móvil y sujétalo en horizontal, como un volante: inclínalo para cambiar de carril.'),
+      h('p', {}, t('Gira el móvil y sujétalo en horizontal, como un volante: inclínalo para cambiar de carril.', 'Turn your phone sideways and hold it like a steering wheel: tilt it to change lanes.')),
       h('div', { class: 'tilt-actions' }, [
-        h('button', { class: 'btn btn-primary', onclick: () => void goLandscape() }, 'Poner en horizontal'),
-        h('button', { class: 'btn btn-ghost', onclick: () => this.el.classList.add('is-portrait-ok') }, 'Seguir en vertical'),
+        h('button', { class: 'btn btn-primary', onclick: () => void goLandscape() }, t('Poner en horizontal', 'Go landscape')),
+        h('button', { class: 'btn btn-ghost', onclick: () => this.el.classList.add('is-portrait-ok') }, t('Seguir en vertical', 'Stay in portrait')),
       ]),
     ]);
 
@@ -171,8 +172,8 @@ export class Cockpit {
         h('div', { class: 'gauge' }, [svg, h('div', { class: 'gauge-readout' }, [this.speedNum, h('div', { class: 'speed-unit' }, 'mm/s'), this.targetNum])]),
         h('div', { class: 'telemetry' }, [this.status, this.battery]),
         h('div', { class: 'combat' }, [
-          h('div', { class: 'meter is-armor', 'aria-label': 'Blindaje' }, [h('span', { class: 'meter-label' }, 'Blindaje'), h('span', { class: 'meter-bar' }, this.armorFill)]),
-          h('div', { class: 'meter is-energy', 'aria-label': 'Energía' }, [h('span', { class: 'meter-label' }, 'Energía'), h('span', { class: 'meter-bar' }, this.energyFill)]),
+          h('div', { class: 'meter is-armor', 'aria-label': t('Blindaje', 'Armor') }, [h('span', { class: 'meter-label' }, t('Blindaje', 'Armor')), h('span', { class: 'meter-bar' }, this.armorFill)]),
+          h('div', { class: 'meter is-energy', 'aria-label': t('Energía', 'Energy') }, [h('span', { class: 'meter-label' }, t('Energía', 'Energy')), h('span', { class: 'meter-bar' }, this.energyFill)]),
           this.targetLine,
         ]),
       ]),
@@ -188,18 +189,18 @@ export class Cockpit {
       ),
       h('div', { class: 'steer' }, [
         this.tiltBar,
-        h('button', { class: 'btn-pad lane', 'aria-label': 'Carril izquierdo (A)', ...hold(() => car.laneLeft()) }, [icon('left'), h('span', {}, 'Carril')]),
-        h('button', { class: 'btn-pad lane', 'aria-label': 'Carril derecho (D)', ...hold(() => car.laneRight()) }, [icon('right'), h('span', {}, 'Carril')]),
-        h('button', { class: 'btn-pad uturn', 'aria-label': 'Media vuelta (U)', ...hold(() => car.uTurn()) }, [icon('uturn'), h('span', {}, 'Media vuelta')]),
+        h('button', { class: 'btn-pad lane', 'aria-label': t('Carril izquierdo (A)', 'Left lane (A)'), ...hold(() => car.laneLeft()) }, [icon('left'), h('span', {}, t('Carril', 'Lane'))]),
+        h('button', { class: 'btn-pad lane', 'aria-label': t('Carril derecho (D)', 'Right lane (D)'), ...hold(() => car.laneRight()) }, [icon('right'), h('span', {}, t('Carril', 'Lane'))]),
+        h('button', { class: 'btn-pad uturn', 'aria-label': t('Media vuelta (U)', 'U-turn (U)'), ...hold(() => car.uTurn()) }, [icon('uturn'), h('span', {}, t('Media vuelta', 'U-turn'))]),
       ]),
       h('div', { class: 'pedals' }, [
         this.throttle,
         h('div', { class: 'pedal-buttons' }, [
-          h('button', { class: 'btn-pad small', 'aria-label': 'Más velocidad (W)', ...hold(() => car.accelerate()) }, icon('up')),
-          h('button', { class: 'btn-pad small', 'aria-label': 'Menos velocidad (S)', ...hold(() => car.decelerate()) }, icon('down')),
+          h('button', { class: 'btn-pad small', 'aria-label': t('Más velocidad (W)', 'Faster (W)'), ...hold(() => car.accelerate()) }, icon('up')),
+          h('button', { class: 'btn-pad small', 'aria-label': t('Menos velocidad (S)', 'Slower (S)'), ...hold(() => car.decelerate()) }, icon('down')),
         ]),
       ]),
-      h('button', { class: 'btn-pad brake', 'aria-label': 'Frenar (Espacio)', ...hold(() => car.brake(), 60) }, 'FRENO'),
+      h('button', { class: 'btn-pad brake', 'aria-label': t('Frenar (Espacio)', 'Brake (Space)'), ...hold(() => car.brake(), 60) }, t('FRENO', 'BRAKE')),
       h('div', { class: 'pad-panel' }, [this.padText, h('div', { class: 'pad-map' }, this.map.el)]),
       h('div', { class: 'car-footer' }, [
         this.swatches,
@@ -220,7 +221,7 @@ export class Cockpit {
     this.gaugeArc.style.strokeDashoffset = String(GAUGE_LEN * (1 - actual));
     this.gaugeTarget.setAttribute('transform', `rotate(${-120 + 240 * target} 100 100)`);
     this.speedNum.textContent = String(Math.round(s.speed));
-    this.targetNum.textContent = `objetivo ${s.targetSpeed}`;
+    this.targetNum.textContent = t(`objetivo ${s.targetSpeed}`, `target ${s.targetSpeed}`);
     if (!this.dragging) this.throttleFill.style.height = `${target * 100}%`;
     this.throttle.setAttribute('aria-valuenow', String(s.targetSpeed));
 
@@ -239,11 +240,11 @@ export class Cockpit {
         ? [
             h('div', { class: 'overlay-card' }, [
               s.status === 'disconnected' ? null : h('div', { class: 'spinner' }),
-              h('p', {}, s.status === 'connecting' ? `Conectando con ${s.name}…` : s.status === 'reconnecting' ? 'Reconectando…' : (s.error ?? 'Desconectado')),
+              h('p', {}, s.status === 'connecting' ? t(`Conectando con ${s.name}…`, `Connecting to ${s.name}…`) : s.status === 'reconnecting' ? t('Reconectando…', 'Reconnecting…') : (s.error ?? t('Desconectado', 'Disconnected'))),
               s.status === 'disconnected'
                 ? h('div', { class: 'overlay-actions' }, [
-                    h('button', { class: 'btn btn-primary', onclick: () => this.model.reconnect() }, 'Reconectar'),
-                    h('button', { class: 'btn btn-ghost', onclick: () => this.model.remove() }, 'Quitar'),
+                    h('button', { class: 'btn btn-primary', onclick: () => this.model.reconnect() }, t('Reconectar', 'Reconnect')),
+                    h('button', { class: 'btn btn-ghost', onclick: () => this.model.remove() }, t('Quitar', 'Remove')),
                   ])
                 : null,
             ]),
@@ -284,7 +285,7 @@ export class Cockpit {
     const turnOn = force ?? !this.tilt.enabled;
     if (turnOn) {
       const ok = await this.tilt.enable();
-      if (!ok && force === undefined) this.model.toast('No se puede usar el giroscopio en este navegador');
+      if (!ok && force === undefined) this.model.toast(t('No se puede usar el giroscopio en este navegador', "Can't use the gyroscope in this browser"));
     } else this.tilt.disable();
     if (force === undefined) setTiltWanted(this.tilt.enabled);
     this.updateTilt();
@@ -295,10 +296,10 @@ export class Cockpit {
     const on = available && !!this.tilt?.enabled;
     this.tiltBar.hidden = !available;
     this.el.classList.toggle('is-tilt', on);
-    this.tiltBtn.textContent = on ? 'Botones' : 'Activar';
-    const t = this.tilt?.tilt ?? 0;
-    this.tiltDot.style.left = `${50 + (Math.max(-30, Math.min(30, t)) / 30) * 50}%`;
-    this.tiltDot.classList.toggle('is-hot', Math.abs(t) >= 18);
+    this.tiltBtn.textContent = on ? t('Botones', 'Buttons') : t('Activar', 'Turn on');
+    const tl = this.tilt?.tilt ?? 0;
+    this.tiltDot.style.left = `${50 + (Math.max(-30, Math.min(30, tl)) / 30) * 50}%`;
+    this.tiltDot.classList.toggle('is-hot', Math.abs(tl) >= 18);
   }
 
   /** Armor, energy, cooldowns, target and track. Runs ~10 times a second. */
@@ -317,24 +318,24 @@ export class Cockpit {
         b.classList.toggle('is-off', down || f.energy < w.energy || cooling > 0);
       }
     }
-    const t = this.model.target();
-    this.targetLine.textContent = t.text;
-    this.targetLine.classList.toggle('has-target', t.hot);
+    const tg = this.model.target();
+    this.targetLine.textContent = tg.text;
+    this.targetLine.classList.toggle('has-target', tg.hot);
 
     const pad = this.model.padName();
     const padMode = !!pad && !this.keepTouch;
     this.el.classList.toggle('is-pad', padMode);
     this.touchToggle.hidden = !pad;
-    this.touchToggle.textContent = padMode ? 'Mostrar controles' : 'Ocultar controles';
+    this.touchToggle.textContent = padMode ? t('Mostrar controles', 'Show controls') : t('Ocultar controles', 'Hide controls');
     if (padMode) {
-      this.padText.textContent = `🎮 Conduces con el ${pad}. RT acelera · LT frena · LB/RB carril · A/X/L3/R3 armas`;
+      this.padText.textContent = t(`🎮 Conduces con el ${pad}. RT acelera · LT frena · LB/RB carril · A/X/L3/R3 armas`, `🎮 Driving with ${pad}. RT gas · LT brake · LB/RB lane · A/X/L3/R3 weapons`);
       this.map.update();
     }
 
     const track = this.model.track();
     this.trackText.textContent = track.text;
     this.scanButton.disabled = !track.canScan;
-    this.scanButton.textContent = track.rescan ? 'Volver a escanear' : 'Escanear pista';
+    this.scanButton.textContent = track.rescan ? t('Volver a escanear', 'Scan again') : t('Escanear pista', 'Scan track');
   }
 
   /** Vertical slider: drag anywhere on it to set the cruise speed; it stays where you leave it. */
@@ -411,9 +412,13 @@ export function keyAction(code: string, car: Drivable, fire: (id: WeaponId) => v
 /** Keys that keep acting while held down. */
 export const REPEAT_KEYS = ['KeyW', 'KeyS', 'ArrowUp', 'ArrowDown', 'KeyQ'];
 
-export function targetText(t: { name: string; pieces: number } | undefined, others: boolean): string {
-  if (t) return `Objetivo: ${t.name} · ${t.pieces === 0 ? 'a tu lado' : `${t.pieces} ${t.pieces === 1 ? 'pieza' : 'piezas'} delante`}`;
-  return others ? 'Sin objetivo a tiro' : 'Conecta otro coche para combatir';
+export function targetText(tg: { name: string; pieces: number } | undefined, others: boolean): string {
+  if (tg)
+    return t(
+      `Objetivo: ${tg.name} · ${tg.pieces === 0 ? 'a tu lado' : `${tg.pieces} ${tg.pieces === 1 ? 'pieza' : 'piezas'} delante`}`,
+      `Target: ${tg.name} · ${tg.pieces === 0 ? 'right beside you' : `${tg.pieces} ${tg.pieces === 1 ? 'piece' : 'pieces'} ahead`}`,
+    );
+  return others ? t('Sin objetivo a tiro', 'No target in range') : t('Conecta otro coche para combatir', 'Connect another car to fight');
 }
 
 export function vibrate(pattern: number | number[]): void {
@@ -448,10 +453,10 @@ function gaugeSvg(): SVGSVGElement {
 }
 
 function statusText(s: CarState): string {
-  if (s.status === 'connecting') return 'Conectando';
-  if (s.status === 'reconnecting') return 'Reconectando';
-  if (s.status === 'disconnected') return 'Desconectado';
-  if (s.onCharger) return 'En el cargador';
-  if (s.onTrack === false) return 'Fuera de la pista';
-  return s.speed > 0 ? `En pista · pieza ${s.pieceId ?? '?'}` : 'Listo';
+  if (s.status === 'connecting') return t('Conectando', 'Connecting');
+  if (s.status === 'reconnecting') return t('Reconectando', 'Reconnecting');
+  if (s.status === 'disconnected') return t('Desconectado', 'Disconnected');
+  if (s.onCharger) return t('En el cargador', 'On the charger');
+  if (s.onTrack === false) return t('Fuera de la pista', 'Off the track');
+  return s.speed > 0 ? t(`En pista · pieza ${s.pieceId ?? '?'}`, `On track · piece ${s.pieceId ?? '?'}`) : t('Listo', 'Ready');
 }

@@ -188,13 +188,13 @@ describe('Battle', () => {
   it('cooldown and energy limit firing; weapons can be switched off', async () => {
     const { battle, a, clock } = await arena();
     expect(battle.fire(a.car, 'missile').ok).toBe(true);
-    expect(battle.fire(a.car, 'missile')).toEqual({ ok: false, reason: 'Recargando' });
+    expect(battle.fire(a.car, 'missile')).toEqual({ ok: false, code: 'cooling', reason: 'Recargando' });
     clock(3000);
     expect(battle.fire(a.car, 'missile').ok).toBe(true);
     clock(3000);
-    expect(battle.fire(a.car, 'missile')).toEqual({ ok: false, reason: 'Sin energía' });
+    expect(battle.fire(a.car, 'missile')).toEqual({ ok: false, code: 'empty', reason: 'Sin energía' });
     battle.enabled = false;
-    expect(battle.fire(a.car, 'shield')).toEqual({ ok: false, reason: 'Armas desactivadas' });
+    expect(battle.fire(a.car, 'shield')).toEqual({ ok: false, code: 'off', reason: 'Armas desactivadas' });
   });
 
   it('a shield blocks hits', async () => {
@@ -212,7 +212,7 @@ describe('Battle', () => {
     expect(battle.fighter(a.car)!.kills).toBe(1);
     await idle();
     expect(b.t.written).toContainEqual([...Msg.setSpeed(0, 30000, true)]);
-    expect(battle.fire(b.car, 'blaster')).toEqual({ ok: false, reason: 'Estás fuera de combate' });
+    expect(battle.fire(b.car, 'blaster')).toEqual({ ok: false, code: 'down', reason: 'Estás fuera de combate' });
     clock(3100);
     battle.tick();
     expect(battle.fighter(b.car)!.armor).toBe(MAX_ARMOR);

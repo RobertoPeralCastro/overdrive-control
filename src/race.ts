@@ -2,6 +2,7 @@ import { AiDriver, type AiLevel, type AiMove } from './ai';
 import type { Battle } from './battle';
 import { carPlace, type Car } from './car';
 import type { MoveDetail } from './field';
+import { t } from './i18n';
 
 /**
  * A race: start lights, lap counting, live standings and the winner.
@@ -95,13 +96,21 @@ export class Race extends EventTarget {
 
   /** Why the race cannot start right now, if it can't. */
   blocker(cars: Car[]): string | undefined {
-    if (this.live) return 'La carrera ya está en marcha';
-    if (!this.battle.field.lap) return 'Primero escanea la pista';
-    if (!cars.some((c) => c.ready)) return 'No hay coches conectados';
+    if (this.live) return t('La carrera ya está en marcha', 'The race is already on');
+    if (!this.battle.field.lap) return t('Primero escanea la pista', 'Scan the track first');
+    if (!cars.some((c) => c.ready)) return t('No hay coches conectados', 'No cars connected');
     const charging = cars.filter((c) => c.ready && carPlace(c.state) === 'charger');
-    if (charging.length) return `${names(charging)} ${charging.length === 1 ? 'está' : 'están'} en el cargador: ponlo en la pista`;
+    if (charging.length)
+      return t(
+        `${names(charging)} ${charging.length === 1 ? 'está' : 'están'} en el cargador: ponlo en la pista`,
+        `${names(charging)} ${charging.length === 1 ? 'is' : 'are'} on the charger: put ${charging.length === 1 ? 'it' : 'them'} on the track`,
+      );
     const off = cars.filter((c) => c.ready && carPlace(c.state) === 'off');
-    if (off.length) return `${names(off)} ${off.length === 1 ? 'está' : 'están'} fuera de la pista: ponlo sobre ella`;
+    if (off.length)
+      return t(
+        `${names(off)} ${off.length === 1 ? 'está' : 'están'} fuera de la pista: ponlo sobre ella`,
+        `${names(off)} ${off.length === 1 ? 'is' : 'are'} off the track: put ${off.length === 1 ? 'it' : 'them'} back on`,
+      );
     return undefined;
   }
 
@@ -283,5 +292,5 @@ export class Race extends EventTarget {
 /** "Skull", "Skull y Thermo", "Skull, Thermo y Nuke". */
 function names(cars: Car[]): string {
   const n = cars.map((c) => c.state.name);
-  return n.length > 1 ? `${n.slice(0, -1).join(', ')} y ${n.at(-1)}` : n[0];
+  return n.length > 1 ? `${n.slice(0, -1).join(', ')} ${t('y', 'and')} ${n.at(-1)}` : n[0];
 }

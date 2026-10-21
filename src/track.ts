@@ -1,3 +1,5 @@
+import { t } from './i18n';
+
 /**
  * Learns the order of the road pieces from the piece IDs a car reports while it drives.
  * Piece IDs identify the piece type (and the start line), not the physical piece, so
@@ -93,11 +95,11 @@ export class TrackLearner {
 export function describeTrack(pieces: number[]): string {
   const count = (k: PieceKind) => pieces.filter((id) => pieceKind(id) === k).length;
   const parts = [
-    [count('recta'), 'recta', 'rectas'],
-    [count('curva'), 'curva', 'curvas'],
-    [count('cruce'), 'cruce', 'cruces'],
-    [count('otra'), 'otra', 'otras'],
+    [count('recta'), t('recta', 'straight'), t('rectas', 'straights')],
+    [count('curva'), t('curva', 'curve'), t('curvas', 'curves')],
+    [count('cruce'), t('cruce', 'crossing'), t('cruces', 'crossings')],
+    [count('otra'), t('otra', 'other'), t('otras', 'others')],
   ] as const;
   const detail = parts.filter(([n]) => n > 0).map(([n, one, many]) => `${n} ${n === 1 ? one : many}`);
-  return `${pieces.length} piezas${detail.length ? ` (${detail.join(', ')})` : ''}`;
+  return `${pieces.length} ${t('piezas', 'pieces')}${detail.length ? ` (${detail.join(', ')})` : ''}`;
 }

@@ -1,5 +1,6 @@
 import type { Battle } from './battle';
 import { MAX_SPEED, type Car } from './car';
+import { t } from './i18n';
 import { pieceKind } from './track';
 
 /**
@@ -30,8 +31,8 @@ interface LevelSpec {
 
 export const AI_LEVELS: Record<AiLevel, LevelSpec> = {
   easy: {
-    name: 'IA fácil',
-    about: 'Va tranquila, casi no dispara y nunca empuja.',
+    name: t('IA fácil', 'Easy AI'),
+    about: t('Va tranquila, casi no dispara y nunca empuja.', 'Takes it easy, hardly shoots and never pushes.'),
     speed: 600,
     aggression: 0.1,
     overtake: 0.1,
@@ -39,8 +40,8 @@ export const AI_LEVELS: Record<AiLevel, LevelSpec> = {
     shove: 0,
   },
   normal: {
-    name: 'IA normal',
-    about: 'Ritmo de carrera, dispara a menudo y a veces te embiste por detrás en las curvas.',
+    name: t('IA normal', 'Normal AI'),
+    about: t('Ritmo de carrera, dispara a menudo y a veces te embiste por detrás en las curvas.', 'Race pace, shoots often and sometimes rams you from behind in the curves.'),
     speed: 850,
     aggression: 0.35,
     overtake: 0.3,
@@ -48,8 +49,8 @@ export const AI_LEVELS: Record<AiLevel, LevelSpec> = {
     shove: 0,
   },
   hard: {
-    name: 'IA difícil',
-    about: 'Rápida y agresiva: te embiste en las curvas y se pone a tu lado para sacarte de la pista.',
+    name: t('IA difícil', 'Hard AI'),
+    about: t('Rápida y agresiva: te embiste en las curvas y se pone a tu lado para sacarte de la pista.', 'Fast and aggressive: rams you in the curves and pulls alongside to push you off the track.'),
     speed: 1100,
     aggression: 0.8,
     overtake: 0.6,

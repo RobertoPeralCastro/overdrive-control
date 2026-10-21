@@ -30,9 +30,25 @@
         font: 16px/1.6 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
       }
       header.hero {
+        position: relative;
         padding: 40px 16px 24px;
         text-align: center;
         background: radial-gradient(circle at 50% 0%, rgb(10 132 255 / 0.25), transparent 70%);
+      }
+      .hero .lang {
+        position: absolute;
+        top: 12px;
+        right: 16px;
+        padding: 3px 12px;
+        border-radius: 999px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.8rem;
+        text-decoration: none;
+      }
+      .hero .lang:hover {
+        color: var(--text);
       }
       .hero h1 {
         margin: 0 0 8px;
@@ -186,6 +202,7 @@
   </head>
   <body>
     <header class="hero">
+      <a class="lang" href="manual-en.html" hreflang="en" lang="en">English</a>
       <h1>🏁 Overdrive Control</h1>
       <p>Conduce tus coches Anki Overdrive desde el móvil: armas, carreras con semáforo, IA, mandos y multijugador. Sin instalar nada.</p>
       <a class="cta" href="./">Abrir la app</a><a class="cta ghost" href="./?demo">Probar sin coche</a>

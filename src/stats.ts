@@ -1,5 +1,6 @@
 import type { Battle, FireDetail } from './battle';
 import type { Car } from './car';
+import { t } from './i18n';
 import type { Race } from './race';
 
 /**
@@ -27,6 +28,7 @@ export interface RaceLive {
   topSpeed: number;
   leadMs: number;
   shots: number;
+  /** Shots that hit someone (once per shot). */
   hits: number;
   kills: number;
   knockedOut: number;
@@ -127,9 +129,10 @@ export class RaceRecorder extends EventTarget {
     const s = this.live.get(shooter);
     if (!s) return;
     s.shots++;
+    // A shot that lands counts once for the aim, even if a pulse catches several cars.
+    if (hits.some((h) => !h.blocked)) s.hits++;
     for (const h of hits) {
       if (h.blocked) continue;
-      s.hits++;
       if (h.knockedOut) {
         s.kills++;
         const t = this.live.get(h.target);
@@ -152,23 +155,23 @@ export class RaceRecorder extends EventTarget {
     };
     const awards: Award[] = [];
     const winner = this.race.winner();
-    if (winner) awards.push({ icon: '🏆', title: 'Ganador', car: winner.car, value: winner.lapTimes.length ? fmtTime(winner.lapTimes.reduce((a, b) => a + b, 0)) : '' });
+    if (winner) awards.push({ icon: '🏆', title: t('Ganador', 'Winner'), car: winner.car, value: winner.lapTimes.length ? fmtTime(winner.lapTimes.reduce((a, b) => a + b, 0)) : '' });
     const fast = best((c) => this.live.get(c)?.topSpeed);
-    if (fast) awards.push({ icon: '⚡', title: 'Más rápido', car: fast.car, value: fmtSpeed(fast.v) });
+    if (fast) awards.push({ icon: '⚡', title: t('Más rápido', 'Top speed'), car: fast.car, value: fmtSpeed(fast.v) });
     const lead = best((c) => this.live.get(c)?.leadMs);
-    if (lead) awards.push({ icon: '👑', title: 'Más tiempo en cabeza', car: lead.car, value: fmtTime(lead.v) });
+    if (lead) awards.push({ icon: '👑', title: t('Más tiempo en cabeza', 'Longest in the lead'), car: lead.car, value: fmtTime(lead.v) });
     const lap = best((c) => {
       const t = this.race.entries.get(c)?.lapTimes;
       return t?.length ? Math.min(...t) : undefined;
     }, true);
-    if (lap) awards.push({ icon: '⏱️', title: 'Vuelta rápida', car: lap.car, value: fmtTime(lap.v) });
+    if (lap) awards.push({ icon: '⏱️', title: t('Vuelta rápida', 'Fastest lap'), car: lap.car, value: fmtTime(lap.v) });
     const kills = best((c) => this.live.get(c)?.kills);
-    if (kills) awards.push({ icon: '💥', title: 'Más derribos', car: kills.car, value: `${kills.v}` });
+    if (kills) awards.push({ icon: '💥', title: t('Más derribos', 'Most knockouts'), car: kills.car, value: `${kills.v}` });
     const aim = best((c) => {
       const s = this.live.get(c);
       return s && s.shots >= 3 ? s.hits / s.shots : undefined;
     });
-    if (aim) awards.push({ icon: '🎯', title: 'Mejor puntería', car: aim.car, value: `${Math.round(aim.v * 100)} %` });
+    if (aim) awards.push({ icon: '🎯', title: t('Mejor puntería', 'Best aim'), car: aim.car, value: `${Math.round(aim.v * 100)} %` });
     this.awards = awards;
 
     // All-time records on this phone.

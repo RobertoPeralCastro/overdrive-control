@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0d12" />
+    <meta name="description" content="Overdrive Control manual: connect and drive Anki Overdrive cars from your phone, with weapons, races, AI, controllers and multiplayer." />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <title>Overdrive Control Manual</title>
+    <style>
+      :root {
+        --bg: #0b0d12;
+        --panel: #141821;
+        --panel-2: #1b2130;
+        --line: #262d3d;
+        --text: #eef1f7;
+        --muted: #8a93a6;
+        --accent: #0a84ff;
+        --warn: #ffd60a;
+        --danger: #ff3b30;
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 16px/1.6 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+      }
+      header.hero {
+        position: relative;
+        padding: 40px 16px 24px;
+        text-align: center;
+        background: radial-gradient(circle at 50% 0%, rgb(10 132 255 / 0.25), transparent 70%);
+      }
+      .hero .lang {
+        position: absolute;
+        top: 12px;
+        right: 16px;
+        padding: 3px 12px;
+        border-radius: 999px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.8rem;
+        text-decoration: none;
+      }
+      .hero .lang:hover {
+        color: var(--text);
+      }
+      .hero h1 {
+        margin: 0 0 8px;
+        font-size: clamp(1.7rem, 6vw, 2.4rem);
+        line-height: 1.15;
+      }
+      .hero p {
+        margin: 0 auto 20px;
+        max-width: 36ch;
+        color: var(--muted);
+      }
+      .cta {
+        display: inline-block;
+        padding: 12px 22px;
+        border-radius: 999px;
+        background: var(--accent);
+        color: #fff;
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .cta.ghost {
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        margin-left: 8px;
+      }
+      nav.toc {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 0 16px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      nav.toc a {
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        color: var(--text);
+        text-decoration: none;
+        font-size: 0.85rem;
+      }
+      main {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 8px 16px 64px;
+      }
+      section {
+        padding-top: 32px;
+      }
+      h2 {
+        font-size: 1.4rem;
+        margin: 0 0 12px;
+        scroll-margin-top: 16px;
+      }
+      h3 {
+        font-size: 1.05rem;
+        margin: 20px 0 8px;
+      }
+      p,
+      li {
+        color: #d5dae4;
+      }
+      a {
+        color: #64d2ff;
+      }
+      code,
+      kbd {
+        font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+        font-size: 0.88em;
+        padding: 1px 6px;
+        border-radius: 6px;
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        color: var(--text);
+      }
+      .shot {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: flex-start;
+        margin: 16px 0;
+      }
+      .shot figure {
+        margin: 0;
+        flex: 0 1 240px;
+      }
+      .shot img {
+        width: 100%;
+        height: auto;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        box-shadow: 0 10px 30px rgb(0 0 0 / 0.45);
+      }
+      .shot figure.wide {
+        flex: 1 1 100%;
+      }
+      .shot figcaption {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-top: 6px;
+        text-align: center;
+      }
+      .shot .text {
+        flex: 1 1 260px;
+        min-width: 0;
+      }
+      .note {
+        border-radius: 12px;
+        padding: 12px 14px;
+        margin: 12px 0;
+        background: color-mix(in srgb, var(--warn) 10%, transparent);
+        border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+      }
+      .note.danger {
+        background: color-mix(in srgb, var(--danger) 10%, transparent);
+        border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+      }
+      .table-wrap {
+        overflow-x: auto;
+        margin: 12px 0;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 0.9rem;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        color: var(--muted);
+        font-weight: 600;
+      }
+      ol.steps > li {
+        margin-bottom: 8px;
+      }
+      footer {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 24px 16px 48px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <a class="lang" href="manual.html" hreflang="es" lang="es">Español</a>
+      <h1>🏁 Overdrive Control</h1>
+      <p>Drive your Anki Overdrive cars from your phone: weapons, races with a starting light, AI, controllers and multiplayer. Nothing to install.</p>
+      <a class="cta" href="./">Open the app</a><a class="cta ghost" href="./?demo">Try the demo</a>
+    </header>
+
+    <nav class="toc" aria-label="Contents">
+      <a href="#necesitas">What you need</a>
+      <a href="#bluetooth">Bluetooth permissions</a>
+      <a href="#jugar">How to play</a>
+      <a href="#volante">Steering wheel</a>
+      <a href="#campana">Campaign</a>
+      <a href="#estadisticas">Stats</a>
+      <a href="#conducir">Driving</a>
+      <a href="#pista">Scanning the track</a>
+      <a href="#armas">Weapons</a>
+      <a href="#carrera">Racing and AI</a>
+      <a href="#mandos">Controllers</a>
+      <a href="#multijugador">Several phones</a>
+      <a href="#teclado">Keyboard</a>
+      <a href="#problemas">Troubleshooting</a>
+    </nav>
+
+    <main>
+      <section id="necesitas">
+        <h2>What you need</h2>
+        <ul>
+          <li><strong>Anki Overdrive cars</strong>, charged, and the <strong>official track</strong> set up. The cars steer by reading codes printed on the track: on the floor without a track they don't work.</li>
+          <li>A browser with <strong>Web Bluetooth</strong>:
+            <ul>
+              <li><strong>Android</strong>: Chrome or Edge (recommended).</li>
+              <li><strong>Windows, macOS, ChromeOS</strong>: Chrome or Edge.</li>
+              <li><strong>iPhone / iPad</strong>: Safari doesn't support it; use the free <strong>Bluefy</strong> browser.</li>
+              <li><strong>Brave</strong>: it ships with it turned off; see below how to enable it.</li>
+            </ul>
+          </li>
+          <li>Optional: one or more <strong>controllers</strong> (Xbox, PlayStation, 8BitDo…) over USB or Bluetooth.</li>
+        </ul>
+        <p>Tip: on your phone, open the app and use <em>Add to Home screen</em> in the browser menu to keep it like any other app, full screen.</p>
+      </section>
+
+      <section id="bluetooth">
+        <h2>Bluetooth permissions</h2>
+        <div class="shot">
+          <figure><img src="manual/01-inicio.png" alt="Main menu with the logo, your car, the Quick race button and the Campaign, Multiplayer and Garage options" width="360" height="781" loading="lazy" /><figcaption>Main menu</figcaption></figure>
+          <div class="text">
+            <ol class="steps">
+              <li>Turn on <strong>Bluetooth</strong> on your phone or computer.</li>
+              <li>Switch the car on and place it on the track. If it doesn't wake up, leave it on the charger for a moment.</li>
+              <li>In the main menu, tap the car slot (or open the <strong>Garage</strong>) and press <strong>Connect car</strong>. The browser opens a list of nearby cars (they show up as <em>Drive</em> or by their name).</li>
+              <li>Pick the car and press <strong>Pair</strong> / <strong>Connect</strong>. Repeat from the <strong>Garage</strong> to add more cars.</li>
+            </ol>
+            <p>The app only gets access to the car you pick in that list; it can't see your other devices.</p>
+          </div>
+        </div>
+
+        <h3>Android</h3>
+        <ul>
+          <li>The first time, Chrome asks for the <strong>Nearby devices</strong> permission: tap <em>Allow</em>. If you denied it, go to <em>Settings → Apps → Chrome → Permissions → Nearby devices</em>.</li>
+          <li>On Android 11 or earlier, Bluetooth also needs <strong>location</strong> turned on (Android requires it to search for devices; the app doesn't use your location).</li>
+          <li>The page must be opened over <strong>https</strong> (the app link already is).</li>
+        </ul>
+
+        <h3>iPhone / iPad</h3>
+        <ul>
+          <li>Install <strong>Bluefy – Web BLE Browser</strong> from the App Store and open the app link with it.</li>
+          <li>When iOS asks whether Bluefy may use Bluetooth, tap <em>Allow</em> (or turn it on in <em>Settings → Bluefy → Bluetooth</em>).</li>
+        </ul>
+
+        <h3>Windows and macOS</h3>
+        <ul>
+          <li>Use Chrome or Edge with the computer's Bluetooth turned on.</li>
+          <li>On macOS, give the browser Bluetooth access in <em>System Settings → Privacy &amp; Security → Bluetooth</em>.</li>
+        </ul>
+
+        <h3>Brave</h3>
+        <div class="note">Brave turns Web Bluetooth off by default. Type <code>brave://flags</code> in the address bar, search for <strong>Web Bluetooth</strong>, set it to <em>Enabled</em> and restart the browser. If you can't find the option, use Chrome or Edge.</div>
+
+        <h3>Checking or removing permissions</h3>
+        <p>In Chrome: the padlock next to the address → <em>Site settings</em>. There you can see the Bluetooth devices you have allowed and remove them.</p>
+      </section>
+
+      <section id="jugar">
+        <h2>How to play: 3 steps</h2>
+        <p>From the <strong>main menu</strong>: <strong>Quick race</strong> takes you to set up the race, <strong>Campaign</strong> to the levels, <strong>Multiplayer</strong> to invite another phone and <strong>Garage</strong> to your cars. At the top, 🏆 counts your wins and <strong>STOP</strong> brakes every car.</p>
+        <div class="shot">
+          <figure><img src="manual/02-garaje.png" alt="Garage with a car's card: picture, driver, colors and the Identify, Drive and Remove buttons" width="360" height="781" loading="lazy" /><figcaption>Garage: swipe to see each car</figcaption></figure>
+          <figure><img src="manual/03-preparar.png" alt="Race setup: map of the scanned track, laps, weapons, sound and the Race! button" width="360" height="781" loading="lazy" /><figcaption>Race setup</figcaption></figure>
+        </div>
+        <ol class="steps">
+          <li><strong>1 · Garage.</strong> Connect each car. Swipe the cards to move from one to the next. Each card shows where the car is and its battery: <strong>🛣️ On the track</strong>, <strong>🔌 Charging</strong> / <strong>Charged</strong> or <strong>⚠️ Off the track</strong> (you lifted it or it came off). The race won't start while any car is on the charger or off the track (the button tells you which one); if one comes off mid-race, every phone warns about it and its screen flashes red until you put it back. On each card you can:
+            <ul>
+              <li>tap the <strong>picture</strong> to give it a photo of your own (from the gallery or the camera);</li>
+              <li>choose its light <strong>color</strong>;</li>
+              <li>choose who drives it: <em>You, on this screen</em>, a <em>controller</em>, the <em>AI</em> (easy, normal or hard) or a <em>guest's phone</em>;</li>
+              <li>press <strong>Identify</strong>: that car blinks so you know which one it is;</li>
+              <li><strong>Drive</strong> to try it freely outside a race.</li>
+            </ul>
+          </li>
+          <li><strong>2 · Race setup.</strong> Scan the track with whichever car you like, choose laps, weapons and sound, and press <strong>Race!</strong> or go into the <strong>Campaign</strong>.</li>
+          <li><strong>3 · Race.</strong> First the cars drive themselves to the <strong>starting line</strong>, each in its own lane, and stop. Then the starting light begins. During the race the whole screen is your car: pedals, weapons, speed and a minimap (or, if you play with a controller, a large view of the track). Tap the <strong>minimap</strong> to see the full standings. At the end, the <strong>podium</strong> and the awards.</li>
+        </ol>
+      </section>
+
+      <section id="volante">
+        <h2>Your phone as a steering wheel</h2>
+        <p>On a phone you play in <strong>landscape, like a steering wheel</strong>: when you press <em>Race!</em> or a campaign level, the app goes full screen and landscape (on iPhone, turn the phone yourself). The <strong>brake</strong> sits under your left thumb and the <strong>gas</strong> under your right.</p>
+        <ul>
+          <li><strong>Tilt the phone</strong> right or left to change lanes; if you keep it tilted, it keeps changing. Go back to the center to let go. The wheel drawn next to the speed turns with you.</li>
+          <li><strong>Center</strong> takes the current position as straight. <strong>Invert</strong> in case steering goes the wrong way on your phone. <strong>Buttons</strong> goes back to the lane arrows.</li>
+          <li>The first time, the browser may ask for permission to use the motion sensor: accept it.</li>
+        </ul>
+      </section>
+
+      <section id="campana">
+        <h2>Campaign</h2>
+        <div class="shot">
+          <figure><img src="manual/08-campana.png" alt="Campaign path with level 1 open and the rest locked" width="360" height="781" loading="lazy" /><figcaption>The campaign path</figcaption></figure>
+          <div class="text">
+            <p>Ten challenges against the AI that unlock one after another, like a path (progress is saved on the phone). Your car is the one you drive; the other connected cars act as rivals, so some levels need 2 or 3 cars.</p>
+          </div>
+        </div>
+        <ol>
+          <li>First race: beat the easy AI over 2 laps.</li>
+          <li>Leader: stay in the lead for 20 s.</li>
+          <li>Sharpshooter: hit the rival with 3 missiles.</li>
+          <li>Survivor: 5 laps without getting destroyed.</li>
+          <li>Bumper cars: push the rival off the track (no weapons).</li>
+          <li>Duel: beat the normal AI with weapons.</li>
+          <li>Hunter: knock the rival out twice.</li>
+          <li>Time trial: set the fastest lap against the hard AI.</li>
+          <li>Two against one: finish ahead of at least one of two AIs.</li>
+          <li>Champion: beat two hard AIs.</li>
+        </ol>
+        <p>During the challenge, the goal and your progress are shown at the top (“missile hits 1/3”). At the end: <em>Level complete!</em> with a button to the next level, or <em>Retry</em>.</p>
+      </section>
+
+      <section id="estadisticas">
+        <h2>Stats</h2>
+        <p>After each race, awards are handed out: 🏆 winner, ⚡ fastest, 👑 most time in the lead, ⏱️ fastest lap, 💥 most knockouts and 🎯 best aim. Each car keeps its history on the phone: races, wins, podiums, top speed, best lap, time in the lead and knockouts. You'll find it on its card in the <strong>Garage</strong>, and your total wins in 🏆 at the top.</p>
+      </section>
+
+      <section id="conducir">
+        <h2>Driving</h2>
+        <div class="shot">
+          <figure class="wide"><img src="manual/05-carrera.png" alt="Race screen in landscape: position, lap, armor and energy at the top left, minimap at the top right, brake on the left, gas on the right, weapons next to the gas and speed with a steering wheel in the middle" width="862" height="398" loading="lazy" /><figcaption>Racing: the phone is the controller</figcaption></figure>
+        </div>
+        <ul>
+          <li><strong>GAS</strong> (right pedal): drag it up; the speed stays wherever you leave it, like cruise control.</li>
+          <li><strong>BRAKE</strong> (left pedal): stops the car.</li>
+          <li><strong>Weapons</strong> (round buttons next to the gas): Laser, Missile, Pulse and Shield. A ring shows the recharge; they go dark when you're out of energy.</li>
+          <li><strong>Center</strong>: speed in km/h (at 1:50 scale) with the steering wheel, and the <strong>◀ ▶</strong> lane arrows if you don't use the gyroscope.</li>
+          <li><strong>Top left</strong>: your position, the lap, your <strong>armor</strong> (green bar) and <strong>energy</strong> (orange bar), and the rival you're aiming at 🎯.</li>
+          <li><strong>Top right</strong>: the minimap with every car (tap it to see the standings) and <strong>⏸</strong> to stop the race.</li>
+          <li>If you get hit, the screen turns red and the phone vibrates.</li>
+        </ul>
+        <p>Outside a race, in the Garage, <strong>Drive</strong> opens <em>Free drive</em> mode, with gas, lanes, U-turn, weapons and light colors.</p>
+      </section>
+
+      <section id="pista">
+        <h2>Scanning the track</h2>
+        <p>To know who's ahead, count laps and draw the map, the app needs to know the track. Press <strong>Scan track</strong> in <em>Race setup</em>: the car does a slow lap and stops at the starting line. You'll see the message <em>Track scanned: 13 pieces…</em>.</p>
+        <p>If you don't scan it, the app learns it on its own while you drive (on tracks without a start piece it takes two laps). If you change the track, press <strong>Scan again</strong>.</p>
+      </section>
+
+      <section id="armas">
+        <h2>Weapons</h2>
+        <p>As in the original game, the weapons are virtual: the app works out the hit and the car that's hit <strong>flashes red and slows down</strong>. With its armor at 0 it is <strong>knocked out</strong> for 3 seconds. Energy recharges on its own. Each weapon has its own sound.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Weapon</th><th>Energy</th><th>Range</th><th>Effect</th></tr></thead>
+            <tbody>
+              <tr><td>Laser</td><td>8</td><td>1 piece ahead</td><td>−8 armor, slows it a little</td></tr>
+              <tr><td>Missile</td><td>35</td><td>3 pieces ahead</td><td>−30 armor, slows it hard</td></tr>
+              <tr><td>Pulse</td><td>50</td><td>1 piece, ahead and behind, everyone</td><td>−10 armor, almost stops them</td></tr>
+              <tr><td>Shield</td><td>30</td><td>—</td><td>Blocks everything for 3 s</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="carrera">
+        <h2>Racing and AI</h2>
+        <div class="shot">
+          <figure class="wide"><img src="manual/04-semaforo.png" alt="Starting light with three of the five red lights on and the text GET READY" width="862" height="398" loading="lazy" /><figcaption>Starting light</figcaption></figure>
+          <figure class="wide"><img src="manual/07-podio.png" alt="Results: podium with the three cars and awards such as winner, fastest, most time in the lead and fastest lap" width="862" height="398" loading="lazy" /><figcaption>Podium and awards</figcaption></figure>
+        </div>
+        <ol class="steps">
+          <li>In the <strong>Garage</strong>, choose each car's <strong>driver</strong>: you on screen, a controller, another phone or the AI.</li>
+          <li>In <strong>Race setup</strong>, choose the number of <strong>laps</strong>, whether there are <strong>weapons</strong>, and the <strong>sound</strong>.</li>
+          <li>Press <strong>Race!</strong>: the cars head to the start (<em>TO THE GRID</em>) and the screen switches to <strong>your car's controls</strong>. 5 red lights with beeps and, when they go out, <strong>GO!</strong> Until then the cars won't move even if you hit the gas.</li>
+          <li>Cars driven by the AI can't be controlled from the screen.</li>
+          <li>The app counts laps, shows your position and announces the last lap. At the end the <strong>podium</strong> appears with the awards, and you can ask for a <strong>Rematch</strong> or go back to the <strong>Menu</strong>.</li>
+        </ol>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>AI level</th><th>What it does</th></tr></thead>
+            <tbody>
+              <tr><td>Easy AI</td><td>Takes it easy, hardly ever shoots and never pushes.</td></tr>
+              <tr><td>Normal AI</td><td>Race pace, shoots often and sometimes rams you from behind in the corners.</td></tr>
+              <tr><td>Hard AI</td><td>Fast and aggressive: rams you in the corners and pulls up alongside to push you off the track.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note danger">The AI's shoves are real: the cars really do crash and can come off the track. If the track is on a table, keep an eye on the edges.</div>
+      </section>
+
+      <section id="mandos">
+        <h2>USB and Bluetooth controllers</h2>
+        <div class="shot">
+          <figure class="wide"><img src="manual/06-mando.png" alt="Racing with a controller: no touch controls, a large view of the track with the cars, the position at the top and the speed at the bottom" width="862" height="398" loading="lazy" /><figcaption>With a controller: a large view of the track</figcaption></figure>
+          <div class="text">
+            <h3>Connecting the controller</h3>
+            <ul>
+              <li><strong>Bluetooth</strong>: first pair the controller with the phone or computer from the system's <em>Bluetooth settings</em>. Put the controller in pairing mode (Xbox: pair button; PlayStation: <em>Create/Share + PS</em>; 8BitDo: depends on the model).</li>
+              <li><strong>USB</strong>: plug it in. On Android you need a USB-C/OTG adapter.</li>
+              <li>With the app open, <strong>press any button</strong> on the controller: the browser only exposes it to the page after that. <em>Controller 1 connected</em> will appear.</li>
+            </ul>
+            <p>While a controller drives your car, the screen hides the touch controls and shows a large view of the track with every car.</p>
+          </div>
+        </div>
+        <h3>Controller setup</h3>
+        <p>In the <strong>Garage</strong>, with the controller connected, press <strong>🎮 Controller 1 setup</strong>. You'll see each action with the button or stick that does it, and everything you press lights up so you can try it. Press <strong>Change</strong> on an action and then the button or stick you want; <strong>+</strong> adds another one, and <strong>×</strong> removes one. It's saved on the phone for that controller model; <strong>Reset</strong> goes back to the defaults below.</p>
+        <p><strong>Gas on a stick:</strong> if your controller has no analog triggers (some only click), put the gas on a stick: in <em>Gas → Change</em>, push the stick up. The further you push it, the faster the car goes, and when you let go it brakes, just like a trigger. The “Gas” bar on that screen shows how much gas you're giving.</p>
+        <p>Default buttons:</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Button</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr><td>RT (right trigger)</td><td>Gas (the harder you press, the faster)</td></tr>
+              <tr><td>LT or B</td><td>Brake</td></tr>
+              <tr><td>LB / RB, D-pad ◀ ▶, left stick</td><td>Left / right lane</td></tr>
+              <tr><td>D-pad ▲ ▼</td><td>More / less speed</td></tr>
+              <tr><td>Y</td><td>U-turn</td></tr>
+              <tr><td>A / X</td><td>Laser / Missile</td></tr>
+              <tr><td>L3 / R3 (press the sticks)</td><td>Pulse / Shield</td></tr>
+              <tr><td>Start</td><td>Start race</td></tr>
+              <tr><td>Select / Back</td><td>Brake all</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>One phone, several controllers</h3>
+        <p>Connect every car and every controller to a single phone. In the <strong>Garage</strong>, choose <em>Controller 1</em>, <em>Controller 2</em>… as each car's driver. Each controller drives only its own car. A controller with no car assigned drives the car you have open on screen.</p>
+        <p><strong>Which controller is which?</strong> In the Garage, press any button on a controller: it vibrates, its car blinks and its card lights up with “🎮 Controller 1”. The other way round, <strong>Identify</strong> on a car's card makes the car blink and the controller driving it vibrate. (Vibration depends on the controller and the browser; Xbox and PlayStation controllers usually vibrate in Chrome.)</p>
+      </section>
+
+      <section id="multijugador">
+        <h2>Playing with several phones</h2>
+        <div class="shot">
+          <figure><img src="manual/09-invitar.png" alt="Window to invite another phone with a QR code and a 5-letter code" width="360" height="781" loading="lazy" /><figcaption>Invite: QR and code</figcaption></figure>
+          <figure class="wide"><img src="manual/10-espectador.png" alt="Spectator view: the track with the cars live and the Stop race button" width="862" height="398" loading="lazy" /><figcaption>If you're not driving (or you've already finished): the track, live</figcaption></figure>
+        </div>
+        <ol class="steps">
+          <li>On the <strong>host</strong> phone, press <strong>Multiplayer</strong> in the menu (or <strong>📱</strong> at the top). A <strong>QR code</strong> and a 5-letter code appear.</li>
+          <li>On the other phone, <strong>scan the QR code with the camera</strong>, or open the app, tap 📱 and type the code under <em>Were you invited?</em>.</li>
+          <li>That phone connects <strong>its own car</strong> over Bluetooth and drives it with the screen or its controller.</li>
+          <li>The host starts the race from <strong>Race setup</strong>. Each phone sees the race screen for its own car: starting light, pedals, weapons, its lap and position and the minimap, with sounds and vibration.</li>
+        </ol>
+        <p>Both phones need internet (Wi-Fi or mobile data) to find each other; after that they talk directly. Each car can only be connected to one phone at a time.</p>
+      </section>
+
+      <section id="teclado">
+        <h2>Keyboard (computer)</h2>
+        <div class="table-wrap">
+          <table>
+            <tbody>
+              <tr><td><kbd>W</kbd> <kbd>S</kbd> / <kbd>↑</kbd> <kbd>↓</kbd></td><td>More / less speed</td></tr>
+              <tr><td><kbd>A</kbd> <kbd>D</kbd> / <kbd>←</kbd> <kbd>→</kbd></td><td>Lane</td></tr>
+              <tr><td><kbd>Space</kbd></td><td>Brake</td></tr>
+              <tr><td><kbd>U</kbd></td><td>U-turn</td></tr>
+              <tr><td><kbd>Q</kbd> <kbd>E</kbd> <kbd>R</kbd> <kbd>F</kbd></td><td>Laser, Missile, Pulse, Shield</td></tr>
+              <tr><td><kbd>1</kbd>–<kbd>9</kbd> / <kbd>0</kbd></td><td>Switch car / race screen</td></tr>
+              <tr><td><kbd>Esc</kbd></td><td>Brake all</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="problemas">
+        <h2>Troubleshooting</h2>
+        <h3>The car doesn't show up in the list</h3>
+        <ul>
+          <li>Put it on the charger for a moment to wake it up and try again.</li>
+          <li>Make sure it isn't connected to another phone or another app (a car only accepts one connection).</li>
+          <li>Check the Bluetooth permissions above (Nearby devices on Android, Brave…).</li>
+        </ul>
+        <h3>“This browser has no Bluetooth”</h3>
+        <p>You're in a browser without Web Bluetooth (Safari, Firefox, or Brave without enabling it). Use Chrome or Edge; on iPhone, Bluefy.</p>
+        <h3>The car drives around looking for the track</h3>
+        <p>The cars can only drive on the official track: they read the codes printed on it. On the floor or any other surface they can't be driven.</p>
+        <h3>It doesn't count laps or there's no target</h3>
+        <p>Scan the track (or scan it again if you've changed it).</p>
+        <h3>The controller does nothing</h3>
+        <p>Press a button on the controller with the app open. In the Garage, check which car that controller is assigned to.</p>
+        <h3>The other phone can't join</h3>
+        <p>Make sure both have internet and that the code is the one the host is showing right now (it changes every time the app is opened). Some office Wi-Fi networks block direct connections between devices; try mobile data.</p>
+        <h3>I still see the old version</h3>
+        <p>Close the app completely and open it again, or reload the page.</p>
+      </section>
+    </main>
+
+    <footer>
+      <p>Overdrive Control is a non-profit personal project, not affiliated with Anki or Digital Dream Labs.</p>
+      <p>Bluetooth protocol based on <a href="https://github.com/dschwen/OpenOverdrive">OpenOverdrive</a> by dschwen and the official <a href="https://github.com/anki/drive-sdk">Anki Drive SDK</a>. Multiplayer with <a href="https://peerjs.com">PeerJS</a>. Code: <a href="https://github.com/RobertoPeralCastro/overdrive-control">github.com/RobertoPeralCastro/overdrive-control</a>.</p>
+    </footer>
+  </body>
+</html>

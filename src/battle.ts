@@ -1,5 +1,6 @@
 import type { Car } from './car';
 import type { Field } from './field';
+import { t } from './i18n';
 import { LightEffect } from './protocol';
 
 /**
@@ -27,10 +28,10 @@ export interface Weapon {
 }
 
 export const WEAPONS: Weapon[] = [
-  { id: 'blaster', name: 'Láser', energy: 8, cooldownMs: 350, range: 1, damage: 8, slow: 0.75, slowMs: 500 },
-  { id: 'missile', name: 'Misil', energy: 35, cooldownMs: 3000, range: 3, damage: 30, slow: 0.3, slowMs: 1500 },
-  { id: 'pulse', name: 'Pulso', energy: 50, cooldownMs: 8000, range: 1, area: true, damage: 10, slow: 0.2, slowMs: 2500 },
-  { id: 'shield', name: 'Escudo', energy: 30, cooldownMs: 8000, range: 0, damage: 0, slow: 1, slowMs: 0 },
+  { id: 'blaster', name: t('Láser', 'Laser'), energy: 8, cooldownMs: 350, range: 1, damage: 8, slow: 0.75, slowMs: 500 },
+  { id: 'missile', name: t('Misil', 'Missile'), energy: 35, cooldownMs: 3000, range: 3, damage: 30, slow: 0.3, slowMs: 1500 },
+  { id: 'pulse', name: t('Pulso', 'Pulse'), energy: 50, cooldownMs: 8000, range: 1, area: true, damage: 10, slow: 0.2, slowMs: 2500 },
+  { id: 'shield', name: t('Escudo', 'Shield'), energy: 30, cooldownMs: 8000, range: 0, damage: 0, slow: 1, slowMs: 0 },
 ];
 
 export const MAX_ARMOR = 100;
@@ -64,7 +65,9 @@ export interface FireDetail {
   hits: Hit[];
 }
 
-export type FireResult = { ok: true; hits: Hit[] } | { ok: false; reason: string };
+/** Why a shot didn't go: `code` for the program, `reason` (translated) for the player. */
+export type FireFail = 'off' | 'disconnected' | 'down' | 'cooling' | 'empty';
+export type FireResult = { ok: true; hits: Hit[] } | { ok: false; code: FireFail; reason: string };
 
 export interface Target {
   car: Car;
@@ -133,19 +136,19 @@ export class Battle extends EventTarget {
   fire(car: Car, id: WeaponId): FireResult {
     const me = this.fighters.get(car);
     const w = WEAPONS.find((x) => x.id === id)!;
-    const t = this.field.now();
-    if (!this.enabled) return { ok: false, reason: 'Armas desactivadas' };
-    if (!me || !car.ready) return { ok: false, reason: 'Coche no conectado' };
-    if (me.downUntil > t) return { ok: false, reason: 'Estás fuera de combate' };
-    if (me.readyAt[id] > t) return { ok: false, reason: 'Recargando' };
-    if (me.energy < w.energy) return { ok: false, reason: 'Sin energía' };
+    const now = this.field.now();
+    if (!this.enabled) return { ok: false, code: 'off', reason: t('Armas desactivadas', 'Weapons off') };
+    if (!me || !car.ready) return { ok: false, code: 'disconnected', reason: t('Coche no conectado', 'Car not connected') };
+    if (me.downUntil > now) return { ok: false, code: 'down', reason: t('Estás fuera de combate', "You're knocked out") };
+    if (me.readyAt[id] > now) return { ok: false, code: 'cooling', reason: t('Recargando', 'Reloading') };
+    if (me.energy < w.energy) return { ok: false, code: 'empty', reason: t('Sin energía', 'No energy') };
 
     me.energy -= w.energy;
-    me.readyAt[id] = t + w.cooldownMs;
+    me.readyAt[id] = now + w.cooldownMs;
 
     let hits: Hit[] = [];
     if (id === 'shield') {
-      me.shieldUntil = t + SHIELD_MS;
+      me.shieldUntil = now + SHIELD_MS;
       car.flashLights(SHIELD_COLOR, SHIELD_MS, LightEffect.THROB, 30);
     } else {
       const victims = w.area ? this.around(car, w.range) : [this.targetFor(car, w.range)].flatMap((x) => (x ? [this.fighters.get(x.car)!] : []));

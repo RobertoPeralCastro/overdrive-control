@@ -1,6 +1,7 @@
 import type { WeaponId } from './battle';
 import type { CarState } from './car';
 import type { CockpitModel, CombatView, Drivable } from './cockpit';
+import { t } from './i18n';
 import type { MapCar } from './mapview';
 import type { Channel } from './net';
 import type { Phase } from './race';
@@ -83,13 +84,13 @@ export class RemoteTransport implements Transport {
 
   async connect(): Promise<void> {
     if (this.linked) return;
-    if (this.link.closed) throw new Error('El móvil invitado se ha desconectado');
+    if (this.link.closed) throw new Error(t('El móvil invitado se ha desconectado', 'The guest phone disconnected'));
     const back = new Promise<void>((resolve) => this.waiters.push(resolve));
-    await Promise.race([back, sleep(RELINK_MS).then(() => Promise.reject(new Error('El coche del invitado no responde')))]);
+    await Promise.race([back, sleep(RELINK_MS).then(() => Promise.reject(new Error(t('El coche del invitado no responde', "The guest's car isn't responding"))))]);
   }
 
   async write(bytes: Uint8Array): Promise<void> {
-    if (!this.linked) throw new Error('Sin conexión con el móvil invitado');
+    if (!this.linked) throw new Error(t('Sin conexión con el móvil invitado', 'No connection to the guest phone'));
     this.link.send({ t: 'w', d: [...bytes] });
   }
 
@@ -233,11 +234,11 @@ export class GuestSession extends EventTarget {
   }
 
   /** Bridges a connected car to the host. */
-  attachCar(t: Transport): void {
-    this.transport = t;
-    t.onMessage = (data) => this.ch.send({ t: 'ble', d: [...new Uint8Array(data.buffer, data.byteOffset, data.byteLength)] } satisfies ToHost);
-    t.onDisconnect = () => this.ch.send({ t: 'gone' } satisfies ToHost);
-    t.onModelId = () => this.announceCar();
+  attachCar(tr: Transport): void {
+    this.transport = tr;
+    tr.onMessage = (data) => this.ch.send({ t: 'ble', d: [...new Uint8Array(data.buffer, data.byteOffset, data.byteLength)] } satisfies ToHost);
+    tr.onDisconnect = () => this.ch.send({ t: 'gone' } satisfies ToHost);
+    tr.onModelId = () => this.announceCar();
     this.announceCar();
   }
 
@@ -273,11 +274,11 @@ export class GuestSession extends EventTarget {
   private receive(m: ToGuest): void {
     switch (m.t) {
       case 'w': {
-        const t = this.transport;
-        if (!t) return;
+        const tr = this.transport;
+        if (!tr) return;
         // Web Bluetooth rejects overlapping writes: keep them in order.
         const bytes = new Uint8Array(m.d);
-        this.writes = this.writes.then(() => t.write(bytes)).catch(() => {});
+        this.writes = this.writes.then(() => tr.write(bytes)).catch(() => {});
         break;
       }
       case 'snap':
@@ -298,12 +299,12 @@ export function guestModel(
   session: GuestSession,
   local: { padName: () => string | undefined; reconnect: () => void; leave: () => void; toast: (m: string) => void },
 ): CockpitModel {
-  const waiting: CarState = { status: 'connecting', name: 'Tu coche', targetSpeed: 0, speed: 0, color: '#0a84ff' };
+  const waiting: CarState = { status: 'connecting', name: t('Tu coche', 'Your car'), targetSpeed: 0, speed: 0, color: '#0a84ff' };
   return {
     car: session.control,
     state: () => session.snap?.car ?? waiting,
     combat: () => session.snap?.combat,
-    target: () => session.snap?.target ?? { text: 'Esperando al anfitrión…', hot: false },
+    target: () => session.snap?.target ?? { text: t('Esperando al anfitrión…', 'Waiting for the host…'), hot: false },
     track: () => session.snap?.track ?? { text: '', canScan: false, rescan: false },
     padName: local.padName,
     map: () => {
@@ -314,14 +315,14 @@ export function guestModel(
         scanning: m?.scanning,
         // Keep markers sliding between snapshots, as the host does between position reports.
         cars: () => (m?.cars ?? []).map((c) => ({ ...c, inPieceMs: c.inPieceMs + (c.live ? performance.now() - session.snapAt : 0) })),
-        scan: m && !m.lap && !m.scanning ? { label: 'Escanear con mi coche', run: () => session.act({ a: 'scan' }) } : undefined,
+        scan: m && !m.lap && !m.scanning ? { label: t('Escanear con mi coche', 'Scan with my car'), run: () => session.act({ a: 'scan' }) } : undefined,
       };
     },
     fire: (v) => session.act({ a: 'fire', v }),
     scan: () => session.act({ a: 'scan' }),
     reconnect: local.reconnect,
     remove: local.leave,
-    removeLabel: 'Salir',
+    removeLabel: t('Salir', 'Leave'),
     toast: local.toast,
   };
 }

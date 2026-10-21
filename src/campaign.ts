@@ -1,6 +1,7 @@
 import type { AiLevel } from './ai';
 import type { Battle, FireDetail } from './battle';
 import type { Car } from './car';
+import { t } from './i18n';
 import type { Entry, Race } from './race';
 import type { RaceRecorder } from './stats';
 
@@ -31,16 +32,16 @@ export interface Level {
 }
 
 export const LEVELS: Level[] = [
-  { id: 1, name: 'Primera carrera', brief: 'Gana a la IA fácil en 2 vueltas. Sin armas.', laps: 2, weapons: false, rivals: ['easy'], goal: { kind: 'win' } },
-  { id: 2, name: 'Líder', brief: 'Ve en cabeza al menos 20 segundos en 3 vueltas.', laps: 3, weapons: false, rivals: ['normal'], goal: { kind: 'lead', seconds: 20 } },
-  { id: 3, name: 'Puntería', brief: 'Da 3 misilazos al rival en 4 vueltas.', laps: 4, weapons: true, rivals: ['easy'], goal: { kind: 'missiles', count: 3 } },
-  { id: 4, name: 'Superviviente', brief: 'Completa 5 vueltas sin que te destruyan el coche.', laps: 5, weapons: true, rivals: ['normal'], goal: { kind: 'survive' } },
-  { id: 5, name: 'A empujones', brief: 'Saca al rival de la pista. Sin armas: solo carrocería.', laps: 3, weapons: false, rivals: ['easy'], goal: { kind: 'pushOff' } },
-  { id: 6, name: 'Duelo', brief: 'Gana a la IA normal en 3 vueltas, con armas.', laps: 3, weapons: true, rivals: ['normal'], goal: { kind: 'win' } },
-  { id: 7, name: 'Cazador', brief: 'Deja fuera de combate al rival 2 veces en 4 vueltas.', laps: 4, weapons: true, rivals: ['normal'], goal: { kind: 'knockouts', count: 2 } },
-  { id: 8, name: 'Contrarreloj', brief: 'Haz la vuelta más rápida de la carrera contra la IA difícil.', laps: 4, weapons: false, rivals: ['hard'], goal: { kind: 'fastLap' } },
-  { id: 9, name: 'Dos contra uno', brief: 'Termina por delante de al menos una de las dos IA.', laps: 4, weapons: true, rivals: ['normal', 'hard'], goal: { kind: 'top', place: 2 } },
-  { id: 10, name: 'Campeón', brief: 'Gana a dos IA difíciles en 5 vueltas, con armas.', laps: 5, weapons: true, rivals: ['hard', 'hard'], goal: { kind: 'win' } },
+  { id: 1, name: t('Primera carrera', 'First race'), brief: t('Gana a la IA fácil en 2 vueltas. Sin armas.', 'Beat the easy AI over 2 laps. No weapons.'), laps: 2, weapons: false, rivals: ['easy'], goal: { kind: 'win' } },
+  { id: 2, name: t('Líder', 'Leader'), brief: t('Ve en cabeza al menos 20 segundos en 3 vueltas.', 'Lead for at least 20 seconds over 3 laps.'), laps: 3, weapons: false, rivals: ['normal'], goal: { kind: 'lead', seconds: 20 } },
+  { id: 3, name: t('Puntería', 'Sharpshooter'), brief: t('Da 3 misilazos al rival en 4 vueltas.', 'Hit the rival with 3 missiles over 4 laps.'), laps: 4, weapons: true, rivals: ['easy'], goal: { kind: 'missiles', count: 3 } },
+  { id: 4, name: t('Superviviente', 'Survivor'), brief: t('Completa 5 vueltas sin que te destruyan el coche.', 'Complete 5 laps without getting your car destroyed.'), laps: 5, weapons: true, rivals: ['normal'], goal: { kind: 'survive' } },
+  { id: 5, name: t('A empujones', 'Push and shove'), brief: t('Saca al rival de la pista. Sin armas: solo carrocería.', 'Push the rival off the track. No weapons: bodywork only.'), laps: 3, weapons: false, rivals: ['easy'], goal: { kind: 'pushOff' } },
+  { id: 6, name: t('Duelo', 'Duel'), brief: t('Gana a la IA normal en 3 vueltas, con armas.', 'Beat the normal AI over 3 laps, with weapons.'), laps: 3, weapons: true, rivals: ['normal'], goal: { kind: 'win' } },
+  { id: 7, name: t('Cazador', 'Hunter'), brief: t('Deja fuera de combate al rival 2 veces en 4 vueltas.', 'Knock out the rival twice over 4 laps.'), laps: 4, weapons: true, rivals: ['normal'], goal: { kind: 'knockouts', count: 2 } },
+  { id: 8, name: t('Contrarreloj', 'Time attack'), brief: t('Haz la vuelta más rápida de la carrera contra la IA difícil.', 'Set the fastest lap of the race against the hard AI.'), laps: 4, weapons: false, rivals: ['hard'], goal: { kind: 'fastLap' } },
+  { id: 9, name: t('Dos contra uno', 'Two on one'), brief: t('Termina por delante de al menos una de las dos IA.', 'Finish ahead of at least one of the two AIs.'), laps: 4, weapons: true, rivals: ['normal', 'hard'], goal: { kind: 'top', place: 2 } },
+  { id: 10, name: t('Campeón', 'Champion'), brief: t('Gana a dos IA difíciles en 5 vueltas, con armas.', 'Beat two hard AIs over 5 laps, with weapons.'), laps: 5, weapons: true, rivals: ['hard', 'hard'], goal: { kind: 'win' } },
 ];
 
 // ---- Progress ------------------------------------------------------------------------------
@@ -113,21 +114,21 @@ export class CampaignRun extends EventTarget {
     const lead = Math.floor((this.recorder.live.get(this.player)?.leadMs ?? 0) / 1000);
     switch (g.kind) {
       case 'win':
-        return 'Objetivo: gana la carrera';
+        return t('Objetivo: gana la carrera', 'Goal: win the race');
       case 'top':
-        return `Objetivo: termina entre los ${g.place} primeros`;
+        return t(`Objetivo: termina entre los ${g.place} primeros`, `Goal: finish in the top ${g.place}`);
       case 'lead':
-        return `Objetivo: ${g.seconds} s en cabeza · llevas ${Math.min(lead, g.seconds)} s`;
+        return t(`Objetivo: ${g.seconds} s en cabeza · llevas ${Math.min(lead, g.seconds)} s`, `Goal: ${g.seconds} s in the lead · ${Math.min(lead, g.seconds)} s so far`);
       case 'missiles':
-        return `Objetivo: misilazos ${Math.min(this.missiles, g.count)}/${g.count}`;
+        return t(`Objetivo: misilazos ${Math.min(this.missiles, g.count)}/${g.count}`, `Goal: missile hits ${Math.min(this.missiles, g.count)}/${g.count}`);
       case 'knockouts':
-        return `Objetivo: derribos ${Math.min(this.knockouts, g.count)}/${g.count}`;
+        return t(`Objetivo: derribos ${Math.min(this.knockouts, g.count)}/${g.count}`, `Goal: knockouts ${Math.min(this.knockouts, g.count)}/${g.count}`);
       case 'pushOff':
-        return this.pushedOff ? '¡Rival fuera de la pista!' : 'Objetivo: saca al rival de la pista';
+        return this.pushedOff ? t('¡Rival fuera de la pista!', 'Rival off the track!') : t('Objetivo: saca al rival de la pista', 'Goal: push the rival off the track');
       case 'survive':
-        return this.destroyed ? 'Te han destruido' : 'Objetivo: termina sin que te destruyan';
+        return this.destroyed ? t('Te han destruido', 'You were destroyed') : t('Objetivo: termina sin que te destruyan', 'Goal: finish without being destroyed');
       case 'fastLap':
-        return 'Objetivo: la vuelta más rápida';
+        return t('Objetivo: la vuelta más rápida', 'Goal: the fastest lap');
     }
   }
 

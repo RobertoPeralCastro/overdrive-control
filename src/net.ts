@@ -4,6 +4,8 @@
  * Everything above this file talks to a plain `Channel`, so tests can use an in-memory pair.
  */
 
+import { t } from './i18n';
+
 export interface Channel {
   send(msg: unknown): void;
   onMessage: (msg: unknown) => void;
@@ -81,7 +83,7 @@ export async function openRoom(): Promise<Room> {
     peer.on('disconnected', () => !peer.destroyed && peer.reconnect());
     return room;
   }
-  throw new Error('No se pudo crear la sala, inténtalo otra vez');
+  throw new Error(t('No se pudo crear la sala, inténtalo otra vez', "Couldn't create the room, try again"));
 }
 
 /** Joins the room `code` from this phone (a guest). */
@@ -94,7 +96,7 @@ export async function joinRoom(code: string): Promise<Channel> {
   });
   const conn = peer.connect(ID_PREFIX + normalizeCode(code), { reliable: true, serialization: 'json' });
   return new Promise<Channel>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('El anfitrión no responde. Revisa el código.')), 15_000);
+    const timer = setTimeout(() => reject(new Error(t('El anfitrión no responde. Revisa el código.', "The host isn't answering. Check the code."))), 15_000);
     conn.on('open', () => {
       clearTimeout(timer);
       const ch = wrap(conn);
@@ -113,10 +115,10 @@ export async function joinRoom(code: string): Promise<Channel> {
 }
 
 function peerError(type: string): string {
-  if (type === 'peer-unavailable') return 'No existe esa partida (¿código mal escrito o el anfitrión la cerró?)';
-  if (type === 'network' || type === 'server-error' || type === 'socket-error') return 'Sin conexión con el servidor de emparejamiento';
-  if (type === 'browser-incompatible') return 'Este navegador no permite conexiones entre móviles';
-  return `Error de conexión (${type})`;
+  if (type === 'peer-unavailable') return t('No existe esa partida (¿código mal escrito o el anfitrión la cerró?)', 'That game doesn’t exist (wrong code, or the host closed it?)');
+  if (type === 'network' || type === 'server-error' || type === 'socket-error') return t('Sin conexión con el servidor de emparejamiento', 'No connection to the matchmaking server');
+  if (type === 'browser-incompatible') return t('Este navegador no permite conexiones entre móviles', 'This browser doesn’t allow phone-to-phone connections');
+  return t(`Error de conexión (${type})`, `Connection error (${type})`);
 }
 
 /** Two connected channels in memory, for tests. */
