@@ -14,6 +14,7 @@ import { showToast } from './shell';
 import { engineSound, sound } from './sound';
 import { fmtSpeed, fmtTime, recordOf } from './stats';
 import { describeTrack } from './track';
+import { deleteTrack, renameTrack, savedTracks, trackLabel } from './tracks';
 import { bluetoothAvailable } from './transport';
 
 /**
@@ -44,6 +45,10 @@ export interface ScreenDeps {
   identify(car: Car): void;
   /** Opens "Configurar mando" for pad `index`. */
   configurePad(index: number): void;
+  /** Uses a track saved from an earlier scan. */
+  useTrack(id: string): void;
+  /** The saved track in use, if any. */
+  trackId(): string | undefined;
   playLevel(level: Level): void;
 }
 
@@ -344,8 +349,11 @@ export class TrackScreen {
     const ready = this.d.cars().filter((c) => c.ready);
     if (!this.scanCar || !ready.includes(this.scanCar)) this.scanCar = ready[0];
 
+    const using = savedTracks().find((s) => s.id === this.d.trackId());
     this.info.textContent = field.lap
-      ? t(`Pista escaneada: ${describeTrack(field.lap)}`, `Track scanned: ${describeTrack(field.lap)}`)
+      ? using
+        ? `${using.name}: ${describeTrack(field.lap)}`
+        : t(`Pista escaneada: ${describeTrack(field.lap)}`, `Track scanned: ${describeTrack(field.lap)}`)
       : field.scanning
         ? t(`${field.scanning.state.name} está dando la vuelta de escaneo…`, `${field.scanning.state.name} is doing the scan lap…`)
         : t('Pista sin escanear.', 'Track not scanned yet.');
@@ -360,7 +368,7 @@ export class TrackScreen {
       );
       const scanBtn = h('button', { class: `btn ${field.lap ? 'btn-ghost' : 'btn-primary'}`, onclick: () => this.scanCar && this.d.scan(this.scanCar) }, field.lap ? t('Volver a escanear', 'Scan again') : t('Escanear pista', 'Scan track'));
       scanBtn.disabled = !this.scanCar || !!field.scanning || race.live;
-      this.scanRow.replaceChildren(h('span', {}, t('Escanear con', 'Scan with')), pick, scanBtn);
+      this.scanRow.replaceChildren(h('div', { class: 'scan-line' }, [h('span', {}, t('Escanear con', 'Scan with')), pick, scanBtn]), ...this.savedLine());
     }
 
     this.lapsNum.textContent = `${race.totalLaps} ${race.totalLaps === 1 ? t('vuelta', 'lap') : t('vueltas', 'laps')}`;
@@ -375,6 +383,43 @@ export class TrackScreen {
     this.whyEl.hidden = !why || race.live;
     this.whyEl.textContent = why ? `⚠️ ${why}` : '';
     this.campaignBtn.disabled = !!why || !!field.scanning;
+  }
+
+  /** Tracks scanned before on this phone: pick one instead of scanning again. */
+  private savedLine(): HTMLElement[] {
+    const saved = savedTracks();
+    if (!saved.length) return [];
+    const current = this.d.trackId();
+    const busy = this.d.race.live || !!this.d.battle.field.scanning;
+    const pick = h(
+      'select',
+      { class: 'driver', 'aria-label': t('Pistas guardadas', 'Saved tracks'), onchange: (e: Event) => this.d.useTrack((e.target as HTMLSelectElement).value) },
+      [
+        ...(current ? [] : [h('option', { value: '' }, t(`📂 Pistas guardadas (${saved.length})…`, `📂 Saved tracks (${saved.length})…`))]),
+        ...saved.map((s) => {
+          const o = h('option', { value: s.id }, trackLabel(s));
+          o.selected = s.id === current;
+          return o;
+        }),
+      ],
+    );
+    pick.disabled = busy;
+    const sel = current && saved.find((s) => s.id === current);
+    const rename = h('button', { class: 'btn btn-ghost btn-sm', title: t('Cambiar el nombre', 'Rename'), 'aria-label': t('Cambiar el nombre de la pista', 'Rename the track') }, '✏️');
+    rename.addEventListener('click', () => {
+      if (!sel) return;
+      const name = prompt(t('Nombre de la pista', 'Track name'), sel.name);
+      if (name) renameTrack(sel.id, name);
+      this.update();
+    });
+    const remove = h('button', { class: 'btn btn-ghost btn-sm', title: t('Borrar la pista guardada', 'Delete the saved track'), 'aria-label': t('Borrar la pista guardada', 'Delete the saved track') }, '🗑️');
+    remove.addEventListener('click', () => {
+      if (!sel || !confirm(t(`¿Borrar «${sel.name}» de las pistas guardadas?`, `Delete “${sel.name}” from the saved tracks?`))) return;
+      deleteTrack(sel.id);
+      this.update();
+    });
+    rename.disabled = remove.disabled = !sel;
+    return [h('div', { class: 'scan-line saved-line' }, [pick, rename, remove])];
   }
 
   private toggleWeapons(): void {

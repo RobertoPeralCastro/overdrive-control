@@ -20,6 +20,7 @@ import { RaceRecorder, loadRecords } from './stats';
 import { TiltSteer } from './tilt';
 import { sound, type SoundName } from './sound';
 import { describeTrack } from './track';
+import { saveTrack, savedTracks, updateTurns } from './tracks';
 import { bluetoothAvailable, pickCar, type Transport } from './transport';
 import { manualUrl, t } from './i18n';
 
@@ -248,7 +249,26 @@ const ordinal = (n: number): string =>
 
 const WEAPON_SOUNDS: Record<WeaponId, SoundName> = { blaster: 'laser', missile: 'missile', pulse: 'pulse', shield: 'shield' };
 
-field.addEventListener('track', () => announce(t(`Pista escaneada: ${describeTrack(field.lap!)}`, `Track scanned: ${describeTrack(field.lap!)}`)));
+/** The saved track on use (scanned now or picked from the saved ones). */
+let trackId: string | undefined;
+
+field.addEventListener('track', () => {
+  // Every scan is kept on this phone, so next time the track can be picked instead of scanned.
+  trackId = saveTrack(field.lap!, field.turns);
+  announce(t(`Pista escaneada y guardada: ${describeTrack(field.lap!)}`, `Track scanned and saved: ${describeTrack(field.lap!)}`));
+});
+// Curves the cars learn while racing make the saved map better too.
+field.addEventListener('shape', () => trackId && field.lap && updateTurns(trackId, field.turns));
+
+function useTrack(id: string): void {
+  const saved = savedTracks().find((s) => s.id === id);
+  if (!saved) return;
+  if (race.live) return showToast(t('Durante la carrera no se puede cambiar de pista', "You can't change the track during a race"));
+  // Set first: the screens redraw while the track loads and show its name.
+  trackId = saved.id;
+  field.useTrack(saved.pieces, saved.turns.map((v) => v ?? undefined));
+  announce(t(`Pista «${saved.name}» cargada: ${describeTrack(saved.pieces)}`, `Track “${saved.name}” loaded: ${describeTrack(saved.pieces)}`));
+}
 field.addEventListener('scanfail', () => announce(t('No se pudo escanear la pista. Comprueba que el coche está sobre ella.', "Couldn't scan the track. Check that the car is on it.")));
 battle.addEventListener('change', () => {
   cockpit?.updateBattle();
@@ -608,6 +628,8 @@ const deps: ScreenDeps = {
   campaign: () => go('campaign'),
   garage: () => go('cars'),
   identify,
+  useTrack,
+  trackId: () => trackId,
   configurePad: (index) => {
     if (screen !== 'pad') padFrom = screen;
     go('pad');

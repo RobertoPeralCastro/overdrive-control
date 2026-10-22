@@ -161,6 +161,23 @@ export class Field extends EventTarget {
     this.changed();
   }
 
+  /** Uses a track scanned before instead of scanning it again. The cars find their place as they drive. */
+  useTrack(pieces: number[], turns: (Turn | undefined)[]): void {
+    if (this.scanning) {
+      this.scanning.brake();
+      this.stopScan();
+    }
+    this.lap = pieces.slice();
+    this.turns = turns.slice();
+    this.runners.forEach((r) => {
+      r.idx = undefined;
+      r.dir = 1;
+      this.locate(r);
+    });
+    this.dispatchEvent(new CustomEvent('shape'));
+    this.changed();
+  }
+
   /** Moves a car's lap index to the nearest piece with its current ID; that also tells its direction. */
   private locate(r: Runner): void {
     const lap = this.lap!;

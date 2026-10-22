@@ -630,6 +630,21 @@ body:has(.home) .topbar .brand {
 .setup > .screen-foot .btn {
   white-space: nowrap;
 }
+/* "Escanear con …" and the saved tracks, one line each */
+.setup .scan-row {
+  flex-direction: column;
+  align-items: stretch;
+}
+.scan-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.scan-line .driver {
+  flex: 1;
+  min-width: 120px;
+}
 /* Why the race can't start yet (car off the track, on the charger, track not scanned…) */
 .start-why {
   margin: 0;
