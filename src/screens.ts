@@ -8,6 +8,7 @@ import { h, icon } from './dom';
 import type { Gamepads } from './gamepad';
 import { lang, manualUrl, setLang, t, type Lang } from './i18n';
 import { MapView, fieldSource } from './mapview';
+import { MODEL_NAMES } from './protocol';
 import type { Driver, Race } from './race';
 import { sound } from './sound';
 import { fmtSpeed, fmtTime, recordOf } from './stats';
@@ -103,12 +104,17 @@ export class HomeScreen {
 
 // ---- 1. Coches ------------------------------------------------------------------------
 
+/** Suggestions for naming a car: the Overdrive models, plus Supertrucks and Fast & Furious cars. */
+const CAR_MODELS = [...new Set([...Object.values(MODEL_NAMES), 'X52', 'X52 Ice', 'Ice Charger', 'Dodge Charger'])].sort();
+
 export class CarsScreen {
   readonly el: HTMLElement;
   private list: HTMLElement;
   private padsLine: HTMLElement;
   private calledTimer?: ReturnType<typeof setTimeout>;
   private called?: { id: string; label: string };
+  /** The car whose name is being edited. */
+  private renaming?: string;
   private nextBtn: HTMLButtonElement;
 
   constructor(private d: ScreenDeps) {
@@ -135,6 +141,7 @@ export class CarsScreen {
             ]),
       ]),
       this.list,
+      h('datalist', { id: 'car-models' }, CAR_MODELS.map((name) => h('option', { value: name }))),
       h('div', { class: 'screen-actions' }, [
         h('button', { class: 'btn btn-ghost', onclick: () => d.addCar() }, [icon('bluetooth'), d.demo ? t('Añadir coche simulado', 'Add simulated car') : t('Conectar coche', 'Connect car')]),
         h('button', { class: 'btn btn-ghost', onclick: () => d.invite() }, t('📱 Invitar a otro móvil', '📱 Invite another phone')),
@@ -146,8 +153,9 @@ export class CarsScreen {
   }
 
   update(): void {
-    // Rebuilding would close a driver dropdown while it is being used.
-    if (this.list.contains(document.activeElement) && document.activeElement instanceof HTMLSelectElement) return;
+    // Rebuilding would close a driver dropdown, or lose a name being typed, while it is being used.
+    const active = document.activeElement;
+    if (this.list.contains(active) && (active instanceof HTMLSelectElement || active instanceof HTMLInputElement)) return;
     const cars = this.d.cars();
     this.list.replaceChildren(
       ...(cars.length
@@ -176,6 +184,44 @@ export class CarsScreen {
     this.list.querySelector(`[data-car="${CSS.escape(car.id)}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   }
 
+  private startRename(car: Car): void {
+    this.renaming = car.id;
+    this.update();
+    this.list.querySelector<HTMLInputElement>(`[data-car="${CSS.escape(car.id)}"] .car-name-input`)?.focus();
+  }
+
+  /**
+   * The browser often can't tell which model a car is (Skull, Thermo…): then the card asks.
+   * "Identificar" makes the car blink to know which one it is; the name is kept for this car.
+   */
+  private nameInput(car: Car): HTMLInputElement {
+    const input = h('input', {
+      class: 'car-name-input',
+      list: 'car-models',
+      value: car.known ? car.state.name : '',
+      placeholder: t('¿Qué coche es?', 'Which car is it?'),
+      'aria-label': t('Nombre del coche', 'Car name'),
+      title: t('Elige el modelo o escribe un nombre. «Identificar» hace parpadear el coche.', 'Pick the model or type a name. “Identify” makes the car blink.'),
+      enterkeyhint: 'done',
+    });
+    const done = () => {
+      if (input.value.trim()) car.rename(input.value);
+      this.renaming = undefined;
+      // After the blur, so the rebuild isn't held back by this input still having focus.
+      setTimeout(() => this.update());
+    };
+    input.addEventListener('change', done);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') input.blur();
+      if (e.key === 'Escape') {
+        input.value = '';
+        input.blur();
+      }
+    });
+    input.addEventListener('blur', () => this.renaming === car.id && done());
+    return input;
+  }
+
   private card(car: Car): HTMLElement {
     const s = car.state;
     const { race } = this.d;
@@ -193,7 +239,9 @@ export class CarsScreen {
       h('div', { class: 'car-card-main' }, [
         h('div', { class: 'car-card-title' }, [
           h('span', { class: 'chip-dot' }),
-          h('strong', {}, `${guest ? '📱 ' : ''}${s.name}`),
+          !guest && (!car.known || this.renaming === car.id)
+            ? this.nameInput(car)
+            : h(guest ? 'strong' : 'button', { class: 'car-name', ...(guest ? {} : { title: t('Cambiar el nombre', 'Rename'), onclick: () => this.startRename(car) }) }, `${guest ? '📱 ' : ''}${s.name}`),
           h('span', { class: 'car-card-meta' }, s.status === 'ready' ? '' : s.status === 'disconnected' ? t('desconectado', 'disconnected') : t('conectando…', 'connecting…')),
         ]),
         s.status === 'ready' ? h('div', { class: `car-place is-${carPlace(s)}` }, placeText(s)) : null,

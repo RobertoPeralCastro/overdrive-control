@@ -573,12 +573,39 @@ body:has(.home) .topbar .brand {
   border-radius: 24px;
   box-shadow: 0 0 26px color-mix(in srgb, var(--car) 55%, transparent);
 }
-.car-card-title strong {
+.car-card-title strong,
+.car-card-title .car-name {
   font-family: var(--display);
   font-weight: 400;
   font-style: italic;
   text-transform: uppercase;
   font-size: 1.2rem;
+}
+/* Tap the name to rename the car */
+.car-card-title button.car-name {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline dotted color-mix(in srgb, currentColor 35%, transparent);
+  text-underline-offset: 4px;
+}
+/* The browser couldn't tell which car this is: ask */
+.car-name-input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--accent-2);
+  background: #0b0d12;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+}
+.car-name-input::placeholder {
+  color: var(--accent-2);
+  opacity: 0.85;
 }
 .empty-card {
   flex: 1;

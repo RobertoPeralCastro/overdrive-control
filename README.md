@@ -133,7 +133,10 @@ npm run build      # genera dist/
 
 - Enciende el coche y ponlo sobre la pista antes de conectar. Si no aparece en la lista, ponlo un momento en el cargador.
 - Los cambios de carril y la media vuelta solo funcionan con el coche en marcha (la app lo acelera a 300 mm/s si está parado).
-- El nombre del modelo (Skull, Thermo…) se lee del anuncio Bluetooth cuando el navegador lo permite; si no, aparece como "Drive".
+- El nombre del modelo (Skull, Thermo…) solo viaja en el anuncio Bluetooth, que el coche deja de emitir al conectarse:
+  la app lo escucha justo antes de conectar, si el navegador tiene `watchAdvertisements` (en Chrome puede requerir
+  el flag *Experimental Web Platform features*). Si no, el garaje pregunta «¿Qué coche es?» y recuerda el nombre
+  para ese coche (el navegador mantiene el id de cada dispositivo).
 
 ## Arquitectura
 

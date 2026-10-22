@@ -99,6 +99,19 @@ export class Car extends EventTarget {
     return this.transport.id;
   }
 
+  /** Whether we know which car this is (from its advertisement, or because the player said so). */
+  get known(): boolean {
+    return !!savedName(this.id) || (this.transport.modelId !== undefined && !!MODEL_NAMES[this.transport.modelId]);
+  }
+
+  /** The player's name for this car, remembered for this car from now on. */
+  rename(name: string): void {
+    const clean = name.trim().slice(0, 24);
+    if (!clean) return;
+    savedNames({ [this.id]: clean });
+    this.update({ name: clean });
+  }
+
   get ready(): boolean {
     return this.state.status === 'ready';
   }
@@ -306,7 +319,32 @@ export class Car extends EventTarget {
   }
 }
 
+const NAMES_KEY = 'overdrive.carnames';
+
+/** Names of the cars this browser has seen, by device id (the browser keeps a car's id). */
+function loadNames(): Record<string, string> {
+  try {
+    return JSON.parse(localStorage.getItem(NAMES_KEY) ?? '{}');
+  } catch {
+    return {};
+  }
+}
+
+function savedName(id: string): string | undefined {
+  return loadNames()[id];
+}
+
+function savedNames(patch: Record<string, string>): void {
+  try {
+    localStorage.setItem(NAMES_KEY, JSON.stringify({ ...loadNames(), ...patch }));
+  } catch {
+    /* storage blocked: the name lasts until the page closes */
+  }
+}
+
 function carName(tr: Transport): string {
+  const saved = savedName(tr.id);
+  if (saved) return saved;
   if (tr.modelId !== undefined && MODEL_NAMES[tr.modelId]) return MODEL_NAMES[tr.modelId];
   // Cars advertise a name like "Drive" followed by garbage bytes on some phones.
   const clean = tr.deviceName.replace(/[^\x20-\x7e]/g, '').trim();

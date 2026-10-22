@@ -53,13 +53,15 @@ export class WebBluetoothTransport implements Transport {
 
   async connect(): Promise<void> {
     this.closing = false;
+    // The model is only in the advertisement, and a car stops advertising once connected:
+    // listen for it first, briefly.
+    if (this.modelId === undefined) await this.readModelId(1500);
     const server = await withRetry(() => this.device.gatt!.connect(), 3);
     const service = await server.getPrimaryService(ANKI_SERVICE);
     this.readChar = await service.getCharacteristic(ANKI_READ_CHAR);
     this.writeChar = await service.getCharacteristic(ANKI_WRITE_CHAR);
     this.readChar.addEventListener('characteristicvaluechanged', this.handleNotify);
     await withRetry(() => this.readChar!.startNotifications(), 3);
-    void this.readModelId();
   }
 
   async write(bytes: Uint8Array): Promise<void> {
@@ -83,30 +85,32 @@ export class WebBluetoothTransport implements Transport {
 
   /**
    * The model (Skull, Thermo...) is only in the advertisement's manufacturer data.
-   * watchAdvertisements is not available everywhere, so this is best-effort.
+   * watchAdvertisements is not available in every browser (in Chrome it may need the
+   * "Experimental Web Platform features" flag), so this is best-effort: it waits up to `ms`
+   * for one advertisement and never fails.
    */
-  private async readModelId(): Promise<void> {
-    if (typeof this.device.watchAdvertisements !== 'function') return;
-    const handler = (ev: BluetoothAdvertisingEvent) => {
-      const data = ev.manufacturerData.get(ANKI_COMPANY_ID) ?? ev.manufacturerData.values().next().value;
-      if (data && data.byteLength >= 2) {
-        this.modelId = data.getUint8(1);
-        this.onModelId(this.modelId);
-        stop();
-      }
-    };
-    const abort = new AbortController();
-    const stop = () => {
-      this.device.removeEventListener('advertisementreceived', handler as EventListener);
-      abort.abort();
-    };
-    try {
+  private readModelId(ms: number): Promise<void> {
+    if (typeof this.device.watchAdvertisements !== 'function') return Promise.resolve();
+    return new Promise((resolve) => {
+      const abort = new AbortController();
+      const stop = () => {
+        clearTimeout(timer);
+        this.device.removeEventListener('advertisementreceived', handler as EventListener);
+        abort.abort();
+        resolve();
+      };
+      const handler = (ev: BluetoothAdvertisingEvent) => {
+        const data = ev.manufacturerData.get(ANKI_COMPANY_ID) ?? ev.manufacturerData.values().next().value;
+        if (data && data.byteLength >= 2) {
+          this.modelId = data.getUint8(1);
+          this.onModelId(this.modelId);
+          stop();
+        }
+      };
+      const timer = setTimeout(stop, ms);
       this.device.addEventListener('advertisementreceived', handler as EventListener);
-      await this.device.watchAdvertisements({ signal: abort.signal });
-      setTimeout(stop, 10_000);
-    } catch {
-      stop();
-    }
+      this.device.watchAdvertisements({ signal: abort.signal }).catch(stop);
+    });
   }
 }
 
