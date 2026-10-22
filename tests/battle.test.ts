@@ -8,7 +8,7 @@ import { Race } from '../src/race';
 import { RaceRecorder } from '../src/stats';
 import { CampaignRun, LEVELS, isUnlocked } from '../src/campaign';
 import { TrackLearner, describeTrack, turnFromWheels } from '../src/track';
-import { layoutTrack } from '../src/trackmap';
+import { layoutTrack, solveBends } from '../src/trackmap';
 import type { Transport } from '../src/transport';
 
 class FakeTransport implements Transport {
@@ -107,6 +107,39 @@ describe('track map', () => {
     // Two straights of 4 pieces and 2 half-circles of radius 0.5: about 4 wide and 1 tall.
     expect(l.width).toBeCloseTo(5, 0);
     expect(l.height).toBeCloseTo(1, 0);
+  });
+
+  it('fixes a curve measured the wrong way, so the oval still closes on the grid', () => {
+    const lap = [33, 36, 57, 17, 18, 39, 40, 46, 48, 20, 23, 51, 34];
+    const turns: ('L' | 'R' | 'S' | undefined)[] = lap.map(() => 'S');
+    [3, 4, 9, 10].forEach((i) => (turns[i] = 'L'));
+    turns[9] = 'R'; // one bad reading
+    const { bends, closed } = solveBends(lap, turns);
+    expect(closed).toBe(true);
+    expect([3, 4, 9, 10].map((i) => bends[i])).toEqual([1, 1, 1, 1]);
+    const l = layoutTrack(lap, turns);
+    expect(l.width).toBeCloseTo(5, 5);
+    expect(l.height).toBeCloseTo(1, 5);
+  });
+
+  it('every curve is 90°: a track with a bend each way lands exactly on the grid', () => {
+    // An L-shaped loop: five left curves and one right (the inside corner).
+    const S = 36;
+    const C = 17;
+    const lap = [S, C, C, C, C, C, S, C];
+    // Every curve read as left, the inside corner too: only one choice closes the loop.
+    const turns: ('L' | 'R' | 'S' | undefined)[] = lap.map((id) => (id === C ? 'L' : 'S'));
+    const { closed, bends } = solveBends(lap, turns);
+    expect(closed).toBe(true);
+    expect(bends).toEqual([0, 1, 1, -1, 1, 1, 0, 1]);
+    // With no readings at all it finds the same loop.
+    expect(solveBends(lap, []).bends).toEqual([0, 1, 1, -1, 1, 1, 0, 1]);
+    const l = layoutTrack(lap, turns);
+    // Corners of grid pieces: every curve end sits on a multiple of half a piece.
+    for (const p of l.pieces.map((ps) => ps.at(-1)!)) {
+      expect(Math.abs(p.x * 2 - Math.round(p.x * 2))).toBeLessThan(1e-9);
+      expect(Math.abs(p.y * 2 - Math.round(p.y * 2))).toBeLessThan(1e-9);
+    }
   });
 
   it('right curves bend the other way', () => {
