@@ -190,17 +190,22 @@ body:has(.home) .topbar .brand {
   grid-template-areas:
     'logo'
     'hero'
-    'menu';
+    'menu'
+    'lang';
   align-content: center;
   gap: 14px;
   padding-bottom: 12px;
+}
+.home > .lang-switch {
+  grid-area: lang;
 }
 @media (orientation: landscape) and (min-width: 640px) {
   .home {
     grid-template-columns: 1.1fr 1fr;
     grid-template-areas:
       'logo hero'
-      'menu hero';
+      'menu hero'
+      'lang hero';
     align-items: center;
     column-gap: 28px;
   }
@@ -303,8 +308,14 @@ body:has(.home) .topbar .brand {
 .home-menu {
   grid-area: menu;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
+}
+/* Narrow screens: the four tiles in two rows */
+@media (max-width: 560px) {
+  .home-menu {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 .menu-race {
   grid-column: 1 / -1;
@@ -364,6 +375,9 @@ body:has(.home) .topbar .brand {
 }
 .menu-tile.is-multi {
   border-color: rgb(0 224 255 / 0.5);
+}
+.menu-tile.is-pads {
+  border-color: rgb(48 209 88 / 0.5);
 }
 
 /* ---- Garage: slide through the cars ---- */
@@ -1576,4 +1590,41 @@ body:has(.hud) .toast.is-visible {
 .lang-switch button:focus-visible {
   outline: 2px solid var(--cyan);
   outline-offset: 2px;
+}
+
+/* Phone held sideways: the main menu has to fit without scrolling */
+@media (orientation: landscape) and (max-height: 500px) {
+  .home {
+    gap: 8px;
+    padding-bottom: 4px;
+  }
+  /* Two rows of wide tiles, icon beside the name */
+  .home-menu {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .menu-race {
+    min-height: 60px;
+  }
+  .menu-tile {
+    min-height: 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+  }
+  .menu-tile small {
+    display: none;
+  }
+  .menu-tile strong {
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+  .menu-icon {
+    font-size: 1.15rem;
+  }
+  .lang-switch button {
+    min-height: 26px;
+    padding: 2px 10px;
+  }
 }

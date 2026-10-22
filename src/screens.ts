@@ -10,6 +10,7 @@ import { lang, manualUrl, setLang, t, type Lang } from './i18n';
 import { MapView, fieldSource } from './mapview';
 import { MODEL_NAMES } from './protocol';
 import type { Driver, Race } from './race';
+import { showToast } from './shell';
 import { engineSound, sound } from './sound';
 import { fmtSpeed, fmtTime, recordOf } from './stats';
 import { describeTrack } from './track';
@@ -53,6 +54,7 @@ export class HomeScreen {
   private hero: HTMLElement;
   private campaignTile: HTMLButtonElement;
   private garageTile: HTMLButtonElement;
+  private padsTile: HTMLButtonElement;
   private raceBtn: HTMLButtonElement;
 
   constructor(private d: ScreenDeps) {
@@ -60,6 +62,7 @@ export class HomeScreen {
     this.raceBtn = h('button', { class: 'btn btn-primary menu-race', onclick: () => d.next() }, [h('span', {}, t('Carrera', 'Quick')), h('small', {}, t('rápida', 'race'))]);
     this.campaignTile = h('button', { class: 'menu-tile is-campaign', onclick: () => d.campaign() });
     this.garageTile = h('button', { class: 'menu-tile is-garage', onclick: () => d.garage() });
+    this.padsTile = h('button', { class: 'menu-tile is-pads', onclick: () => this.openPads() });
     this.el = h('section', { class: 'home' }, [
       h('div', { class: 'home-logo' }, [h('span', { class: 'home-logo-a' }, 'OVERDRIVE'), h('span', { class: 'home-logo-b' }, 'RACING')]),
       this.hero,
@@ -68,6 +71,7 @@ export class HomeScreen {
         this.campaignTile,
         h('button', { class: 'menu-tile is-multi', onclick: () => d.invite() }, [h('span', { class: 'menu-icon' }, '📱'), h('strong', {}, t('Multijugador', 'Multiplayer')), h('small', {}, t('cada uno con su móvil', 'each on their own phone'))]),
         this.garageTile,
+        this.padsTile,
       ]),
       langSwitch(d),
     ]);
@@ -97,8 +101,26 @@ export class HomeScreen {
     const done = completedLevels().size;
     this.campaignTile.replaceChildren(h('span', { class: 'menu-icon' }, '🏆'), h('strong', {}, t('Campaña', 'Campaign')), h('small', {}, t(`${done}/${LEVELS.length} superados`, `${done}/${LEVELS.length} cleared`)));
     this.garageTile.replaceChildren(h('span', { class: 'menu-icon' }, '🏎️'), h('strong', {}, t('Garaje', 'Garage')), h('small', {}, `${cars.length} ${cars.length === 1 ? t('coche', 'car') : t('coches', 'cars')}`));
+    const pads = this.d.pads.list();
+    this.padsTile.replaceChildren(
+      h('span', { class: 'menu-icon' }, '🎮'),
+      h('strong', {}, t('Mandos', 'Controllers')),
+      h('small', {}, pads.length ? t(`${pads.length} conectado${pads.length === 1 ? '' : 's'} · configurar`, `${pads.length} connected · set up`) : t('pulsa un botón del mando', 'press a button on it')),
+    );
     this.raceBtn.disabled = !cars.some((c) => c.ready);
     this.campaignTile.disabled = !cars.some((c) => c.ready);
+  }
+
+  /** Straight to "Configurar mando", or how to make the controller show up. */
+  private openPads(): void {
+    const pads = this.d.pads.list();
+    if (pads.length) return this.d.configurePad(pads[0].index);
+    showToast(
+      t(
+        'Conecta el mando por USB o Bluetooth y pulsa cualquier botón: el navegador solo lo muestra después.',
+        'Connect the controller over USB or Bluetooth and press any button: the browser only shows it after that.',
+      ),
+    );
   }
 }
 

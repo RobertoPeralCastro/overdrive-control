@@ -609,6 +609,7 @@ const deps: ScreenDeps = {
   garage: () => go('cars'),
   identify,
   configurePad: (index) => {
+    if (screen !== 'pad') padFrom = screen;
     go('pad');
     padScreen.open(index);
   },
@@ -618,7 +619,9 @@ const homeScreen = new HomeScreen(deps);
 const carsScreen = new CarsScreen(deps);
 const trackScreen = new TrackScreen(deps);
 const campaignScreen = new CampaignScreen(deps);
-const padScreen = new PadConfigScreen(pads, () => go('cars'));
+/** "Configurar mando" opens from the main menu or the garage, and goes back there. */
+let padFrom: Screen = 'cars';
+const padScreen = new PadConfigScreen(pads, () => go(padFrom));
 
 // ---- Campaign -----------------------------------------------------------------------------
 
@@ -731,7 +734,8 @@ const TITLES: Record<Screen, string> = {
 };
 
 function goBack(): void {
-  if (screen === 'drive' || screen === 'pad') return go('cars');
+  if (screen === 'pad') return go(padFrom);
+  if (screen === 'drive') return go('cars');
   if (screen === 'race' && race.live) return stopAll();
   go('home');
 }
