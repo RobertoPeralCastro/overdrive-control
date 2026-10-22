@@ -6,6 +6,7 @@ import { MapView } from './mapview';
 import { LIGHTS } from './race';
 import type { RaceSummary } from './remote';
 import { t } from './i18n';
+import { Engine } from './sound';
 import { enOrdinal, enSuffix } from './racestrip';
 import { goLandscape } from './shell';
 import { toKmh } from './stats';
@@ -51,6 +52,7 @@ export class RaceHud {
   private fx: HTMLElement;
   private tiltBtn: HTMLButtonElement;
   private map: MapView;
+  private engine = new Engine();
   private tilt?: TiltSteer;
   private lastPhase?: string;
   private goTimer?: ReturnType<typeof setTimeout>;
@@ -192,6 +194,9 @@ export class RaceHud {
     this.speed.textContent = String(toKmh(s.speed));
     this.speedSub.textContent = s.targetSpeed ? t(`crucero ${toKmh(s.targetSpeed)}`, `cruise ${toKmh(s.targetSpeed)}`) : '';
     if (!this.dragging) this.gasFill.style.height = `${(s.targetSpeed / MAX_SPEED) * 100}%`;
+    // Engine: revs up with the gas right away, then follows the real speed.
+    if (s.status === 'ready') this.engine.set(Math.max(s.speed, s.targetSpeed) / MAX_SPEED);
+    else this.engine.stop();
     this.gas.setAttribute('aria-valuenow', String(s.targetSpeed));
 
     // Armor, energy, weapons
@@ -230,6 +235,7 @@ export class RaceHud {
   destroy(): void {
     this.map.destroy();
     this.tilt?.disable();
+    this.engine.destroy();
     clearTimeout(this.goTimer);
   }
 

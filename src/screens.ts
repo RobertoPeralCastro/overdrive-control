@@ -10,7 +10,7 @@ import { lang, manualUrl, setLang, t, type Lang } from './i18n';
 import { MapView, fieldSource } from './mapview';
 import { MODEL_NAMES } from './protocol';
 import type { Driver, Race } from './race';
-import { sound } from './sound';
+import { engineSound, sound } from './sound';
 import { fmtSpeed, fmtTime, recordOf } from './stats';
 import { describeTrack } from './track';
 import { bluetoothAvailable } from './transport';
@@ -274,6 +274,7 @@ export class TrackScreen {
   private lapsNum: HTMLElement;
   private weaponsBtn: HTMLButtonElement;
   private soundBtn: HTMLButtonElement;
+  private engineBtn: HTMLButtonElement;
   private startBtn: HTMLButtonElement;
   private campaignBtn: HTMLButtonElement;
   private whyEl = h('p', { class: 'start-why', role: 'status', hidden: '' });
@@ -287,6 +288,7 @@ export class TrackScreen {
     this.lapsNum = h('span', { class: 'laps-num' });
     this.weaponsBtn = h('button', { class: 'btn btn-ghost btn-sm', onclick: () => this.toggleWeapons() });
     this.soundBtn = h('button', { class: 'btn btn-ghost btn-sm', onclick: () => this.toggleSound() });
+    this.engineBtn = h('button', { class: 'btn btn-ghost btn-sm', onclick: () => this.toggleEngine() });
     this.startBtn = h('button', { class: 'btn btn-primary btn-lg', onclick: () => d.start() }, t('¡A correr! ›', 'Race! ›'));
     this.campaignBtn = h('button', { class: 'btn btn-ghost btn-lg', onclick: () => d.campaign() }, t('Campaña', 'Campaign'));
     const step = (delta: number) => {
@@ -306,6 +308,7 @@ export class TrackScreen {
         ]),
         this.weaponsBtn,
         this.soundBtn,
+        this.engineBtn,
       ]),
       this.whyEl,
       h('footer', { class: 'screen-foot' }, [this.campaignBtn, this.startBtn]),
@@ -341,6 +344,8 @@ export class TrackScreen {
     this.lapsNum.textContent = `${race.totalLaps} ${race.totalLaps === 1 ? t('vuelta', 'lap') : t('vueltas', 'laps')}`;
     this.weaponsBtn.textContent = battle.enabled ? t('Armas: sí', 'Weapons: on') : t('Armas: no', 'Weapons: off');
     this.soundBtn.textContent = sound.muted ? t('Sonido: no', 'Sound: off') : t('Sonido: sí', 'Sound: on');
+    this.engineBtn.textContent = engineSound.on ? t('Motor: sí', 'Engine: on') : t('Motor: no', 'Engine: off');
+    this.engineBtn.disabled = sound.muted;
     const why = race.blocker(this.d.cars());
     this.startBtn.disabled = !!why || !!field.scanning;
     this.startBtn.title = why ?? '';
@@ -358,6 +363,11 @@ export class TrackScreen {
   private toggleSound(): void {
     sound.setMuted(!sound.muted);
     sound.unlock();
+    this.update();
+  }
+
+  private toggleEngine(): void {
+    engineSound.set(!engineSound.on);
     this.update();
   }
 

@@ -3,6 +3,7 @@ import { MAX_SPEED, type CarState } from './car';
 import { h, icon } from './dom';
 import { MapView, type MapSource } from './mapview';
 import { t } from './i18n';
+import { Engine } from './sound';
 import { goLandscape } from './shell';
 import { TiltSteer } from './tilt';
 
@@ -79,6 +80,7 @@ export class Cockpit {
   private padText: HTMLElement;
   private touchToggle: HTMLButtonElement;
   private map: MapView;
+  private engine = new Engine();
   /** The player asked for the touch controls even though a pad is driving. */
   private keepTouch = false;
   private dragging = false;
@@ -218,6 +220,8 @@ export class Cockpit {
 
     const actual = Math.min(1, s.speed / MAX_SPEED);
     const target = s.targetSpeed / MAX_SPEED;
+    if (s.status === 'ready') this.engine.set(Math.max(actual, target));
+    else this.engine.stop();
     this.gaugeArc.style.strokeDashoffset = String(GAUGE_LEN * (1 - actual));
     this.gaugeTarget.setAttribute('transform', `rotate(${-120 + 240 * target} 100 100)`);
     this.speedNum.textContent = String(Math.round(s.speed));
@@ -256,6 +260,7 @@ export class Cockpit {
   destroy(): void {
     this.map.destroy();
     this.tilt?.disable();
+    this.engine.destroy();
   }
 
   /**

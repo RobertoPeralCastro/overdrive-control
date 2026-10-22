@@ -74,6 +74,7 @@ export const sound = {
   },
   setMuted(on: boolean): void {
     muted = on;
+    if (on) engines.forEach((e) => e.stop());
     try {
       localStorage.setItem(MUTE_KEY, on ? '1' : '0');
     } catch {
@@ -117,3 +118,105 @@ export const sound = {
 };
 
 export type SoundName = Exclude<keyof typeof sound, 'muted' | 'setMuted' | 'unlock'>;
+
+// ---- Engine ------------------------------------------------------------------------------
+
+const ENGINE_KEY = 'overdrive.engine';
+let engineOn = (() => {
+  try {
+    return localStorage.getItem(ENGINE_KEY) !== '0';
+  } catch {
+    return true;
+  }
+})();
+const engines = new Set<Engine>();
+
+/** Engine noise on or off (on its own, besides the general sound switch). */
+export const engineSound = {
+  get on(): boolean {
+    return engineOn;
+  },
+  set(on: boolean): void {
+    engineOn = on;
+    try {
+      localStorage.setItem(ENGINE_KEY, on ? '1' : '0');
+    } catch {
+      /* private mode */
+    }
+    if (!on) engines.forEach((e) => e.stop());
+  },
+};
+
+if (typeof document !== 'undefined') {
+  // No engine humming from a phone in the pocket.
+  document.addEventListener('visibilitychange', () => document.hidden && engines.forEach((e) => e.stop()));
+}
+
+/**
+ * The hum of the car this phone drives: two detuned oscillators through a low-pass filter that
+ * opens with the revs, pulsed by a low "firing" rhythm. `set(rev)` follows the speed (0..1).
+ */
+export class Engine {
+  private nodes?: { oscs: OscillatorNode[]; filter: BiquadFilterNode; out: GainNode; pulse: OscillatorNode; depth: GainNode };
+
+  constructor() {
+    engines.add(this);
+  }
+
+  set(rev: number): void {
+    if (!engineOn || (typeof document !== 'undefined' && document.hidden)) return this.stop();
+    const a = audio();
+    if (!a) return;
+    const n = (this.nodes ??= this.build(a));
+    const r = Math.max(0, Math.min(1, rev));
+    const t = a.currentTime;
+    const base = 48 + 190 * r; // Hz: idle rumble to a high whine
+    n.oscs[0].frequency.setTargetAtTime(base, t, 0.12);
+    n.oscs[1].frequency.setTargetAtTime(base * 1.505, t, 0.12);
+    n.filter.frequency.setTargetAtTime(260 + 2200 * r, t, 0.15);
+    n.pulse.frequency.setTargetAtTime(9 + 38 * r, t, 0.12);
+    n.out.gain.setTargetAtTime(0.03 + 0.07 * r, t, 0.1);
+  }
+
+  stop(): void {
+    const n = this.nodes;
+    if (!n || !ctx) return;
+    this.nodes = undefined;
+    const t = ctx.currentTime;
+    n.out.gain.setTargetAtTime(0, t, 0.08);
+    for (const o of [...n.oscs, n.pulse]) o.stop(t + 0.5);
+  }
+
+  /** Stops for good (the screen that drove it is gone). */
+  destroy(): void {
+    this.stop();
+    engines.delete(this);
+  }
+
+  private build(a: AudioContext) {
+    const out = a.createGain();
+    out.gain.value = 0;
+    const filter = a.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.Q.value = 4;
+    // The firing pulse: a gain that wobbles between ~0.45 and 1.
+    const body = a.createGain();
+    body.gain.value = 0.72;
+    const pulse = a.createOscillator();
+    pulse.type = 'triangle';
+    const depth = a.createGain();
+    depth.gain.value = 0.28;
+    pulse.connect(depth).connect(body.gain);
+    const oscs = (['sawtooth', 'square'] as const).map((type, i) => {
+      const o = a.createOscillator();
+      o.type = type;
+      const g = a.createGain();
+      g.gain.value = i === 0 ? 0.6 : 0.25;
+      o.connect(g).connect(filter);
+      return o;
+    });
+    filter.connect(body).connect(out).connect(a.destination);
+    [...oscs, pulse].forEach((o) => o.start());
+    return { oscs, filter, out, pulse, depth };
+  }
+}
